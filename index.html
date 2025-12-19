@@ -3,200 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Trader Cat - Lite</title>
+    <title>ilMicioTraderGame - Cyber Evolution</title>
     <style>
-        body {
-            margin: 0;
-            background: #0a0b0d;
-            color: #e2e8f0;
-            font-family: 'Inter', system-ui, sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        :root {
+            --neon: #00ff88;
+            --danger: #ff3366;
+            --gold: #fbbf24;
+        }
+        body { margin: 0; background: #050608; color: #fff; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        
+        #ui {
+            position: absolute; top: 20px; left: 20px; z-index: 100;
+            background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px;
+            border-left: 4px solid var(--neon); backdrop-filter: blur(5px);
         }
 
-        #ui-layer {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            pointer-events: none;
+        .stat { font-family: monospace; font-size: 1.2rem; margin-bottom: 5px; }
+        .lvl-badge { color: var(--gold); font-weight: bold; }
+        
+        #overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000;
         }
 
-        .stat {
-            font-size: 1.2rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-
-        .price { color: #00ff88; font-family: monospace; }
-        .leverage { color: #ff3366; }
-
-        #game-container {
-            width: 100vw;
-            height: 100vh;
-            cursor: pointer;
-        }
-
-        .controls-hint {
-            position: absolute;
-            bottom: 20px;
-            color: #64748b;
-            font-size: 0.9rem;
+        button { 
+            background: var(--neon); border: none; padding: 15px 30px; 
+            font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div class="stat">Price: <span id="price-val" class="price">0.0000</span></div>
-        <div class="stat">Lev: <span class="leverage">20x</span></div>
-        <div id="status" class="stat" style="color: #64748b;">HOLDING...</div>
+    <div id="overlay">
+        <h1 style="color: var(--danger); font-size: 4rem;">LIQUIDATED</h1>
+        <button onclick="location.reload()">RETRY WITH $10,000</button>
     </div>
 
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div class="stat">RANK: <span id="lvl" class="lvl-badge">LVL 1 (Bajso)</span></div>
+        <div class="stat">EQUITY: <span id="bal">$10,000.00</span></div>
+        <div class="stat" id="pnl" style="font-size: 0.9rem;">P/L: $0.00</div>
+        <div class="stat" style="font-size: 0.8rem; color: #64748b;">LEV: <span id="lev">5x</span></div>
     </div>
 
-    <div class="controls-hint">Klikni in drži za LONG | Spusti za SHORT</div>
+    <canvas id="gameCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const priceEl = document.getElementById('price-val');
-        const statusEl = document.getElementById('status');
+        let width, height, points = [], currentPrice = 0, catY = 0;
+        let balance = 10000, pnl = 0, level = 1, leverage = 5, xp = 0, isLong = false;
 
-        let width, height;
-        let points = [];
-        let catY = 0;
-        let targetCatY = 0;
-        let isLong = false;
-        let currentPrice = 42000;
-        let scrollX = 0;
-
-        // Nastavitve
-        const config = {
-            pointsCount: 50,
-            pointSpacing: 40,
-            smoothness: 0.15,
-            neonColor: '#00ff88',
-            catColor: '#ffffff'
+        const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
+        ws.onopen = () => ws.send(JSON.stringify({"op": "subscribe","args": [{"instType": "SPOT", "channel": "ticker", "instId": "BTCUSDT"}]}));
+        ws.onmessage = (e) => {
+            const d = JSON.parse(e.data);
+            if (d.data && d.data[0]) {
+                const price = parseFloat(d.data[0].lastPr);
+                if (currentPrice) {
+                    const change = (price - currentPrice) / currentPrice;
+                    const move = balance * change * leverage * (isLong ? 1 : -1);
+                    pnl += move;
+                    if (move > 0) { xp++; if (xp > level * 40) levelUp(); }
+                    if (balance + pnl <= 0) document.getElementById('overlay').style.display = 'flex';
+                }
+                currentPrice = price;
+                points.push(price); if (points.length > 100) points.shift();
+                updateUI();
+            }
         };
 
-        function init() {
-            resize();
-            // Generiranje začetnega grafa
-            for (let i = 0; i < config.pointsCount; i++) {
-                points.push(height / 2 + (Math.random() - 0.5) * 100);
-            }
-            catY = points[10];
-            animate();
+        function levelUp() {
+            level++; leverage += 5; xp = 0;
+            const titles = ["Bajso", "Hustler", "Bully", "Alpha", "GigaMicio"];
+            document.getElementById('lvl').innerText = `LVL ${level} (${titles[Math.min(level-1, 4)]})`;
         }
 
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
+        function updateUI() {
+            document.getElementById('bal').innerText = "$" + (balance + pnl).toLocaleString(undefined,{minimumFractionDigits:2});
+            document.getElementById('pnl').innerText = "P/L: " + (pnl>=0?"+":"") + pnl.toFixed(2);
+            document.getElementById('pnl').style.color = pnl>=0 ? "#00ff88" : "#ff3366";
+            document.getElementById('lev').innerText = leverage + "x";
         }
 
-        // Glavna logika premikanja
-        function update() {
-            // Generiranje nove cene (simuliran graf)
-            const lastPoint = points[points.length - 1];
-            const volatility = 5;
-            const nextPoint = lastPoint + (Math.random() - 0.5) * volatility;
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.onresize = resize; resize();
+
+        function drawMicio(x, y, scale) {
+            ctx.save();
+            ctx.translate(x, y);
             
-            points.push(nextPoint);
-            if (points.length > config.pointsCount) points.shift();
+            // Animacija dihanja
+            const breath = Math.sin(Date.now() / 300) * 2;
+            const micioSize = (30 - (level * 2)) + breath; // Postaja manjši/bolj fit z leveli
+            const widthMult = level < 3 ? 1.5 : 0.8; // LVL 1 je "chunky"
 
-            // Simulacija cene v UI
-            currentPrice += (nextPoint - lastPoint) * 10;
-            priceEl.innerText = currentPrice.toFixed(2);
-
-            // Mačka sledi grafu z zamikom ali switcha med robovi
-            const playerXIndex = 10; // Mačka je fiksirana na 10. točki grafa
-            const baselineY = points[playerXIndex];
-            
-            // Če držimo Long, gre mačka nad graf, če ne, pod graf
-            const offset = isLong ? -30 : 30;
-            targetCatY = baselineY + offset;
-            
-            // Gladko premikanje (Lerp)
-            catY += (targetCatY - catY) * config.smoothness;
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, width, height);
-
-            // 1. Izris mreže (Grid)
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1;
-            for(let i = 0; i < width; i += 50) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, height);
-                ctx.stroke();
-            }
-
-            // 2. Izris grafa (Glavna linija)
-            ctx.beginPath();
-            ctx.strokeStyle = isLong ? '#00ff88' : '#ff3366';
-            ctx.lineWidth = 3;
+            // Telo
+            ctx.fillStyle = "#222";
             ctx.shadowBlur = 15;
-            ctx.shadowColor = ctx.strokeStyle;
-            
-            for (let i = 0; i < points.length; i++) {
-                const x = i * config.pointSpacing;
-                const y = points[i];
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // 3. Izris mačke (Igralec)
-            const playerX = 10 * config.pointSpacing;
-            
-            // Telo mačke (poenostavljeno v neon krog za "pro" izgled)
-            ctx.fillStyle = config.catColor;
+            ctx.shadowColor = isLong ? "#00ff88" : "#ff3366";
             ctx.beginPath();
-            ctx.arc(playerX, catY, 10, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, micioSize * widthMult, micioSize, 0, 0, Math.PI * 2);
             ctx.fill();
-            
-            // Aura okoli mačke
-            ctx.strokeStyle = config.catColor;
-            ctx.lineWidth = 2;
+
+            // Oči (Neon)
+            ctx.fillStyle = "#fff";
             ctx.beginPath();
-            ctx.arc(playerX, catY, 15 + Math.sin(Date.now()/200)*3, 0, Math.PI * 2);
+            ctx.arc(-micioSize/2, -micioSize/4, 4, 0, Math.PI*2);
+            ctx.arc(micioSize/2, -micioSize/4, 4, 0, Math.PI*2);
+            ctx.fill();
+
+            // Rep (Animiran)
+            ctx.strokeStyle = "#222";
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(micioSize * widthMult, 0);
+            ctx.quadraticCurveTo(micioSize*2, Math.sin(Date.now()/200)*20, micioSize*1.5, -20);
             ctx.stroke();
+
+            ctx.restore();
         }
 
-        function animate() {
-            update();
-            draw();
-            requestAnimationFrame(animate);
+        function render() {
+            ctx.fillStyle = "#050608";
+            ctx.fillRect(0, 0, width, height);
+
+            // Cyber Grid
+            ctx.strokeStyle = "#111827";
+            for(let i=0; i<width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke(); }
+            for(let i=0; i<height; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(width,i); ctx.stroke(); }
+
+            if (points.length > 2) {
+                const min = Math.min(...points), max = Math.max(...points), range = (max-min)||10;
+                const getY = (p) => height/2 + (height/3) * (-(p - (min+max)/2) / (range/2));
+
+                // 3D Path Effect
+                ctx.beginPath();
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = "rgba(31, 41, 55, 0.3)";
+                points.forEach((p, i) => { 
+                    const x = i * (width/100);
+                    if(i==0) ctx.moveTo(x, getY(p)+10); else ctx.lineTo(x, getY(p)+10);
+                });
+                ctx.stroke();
+
+                // Main Price Line
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = isLong ? "#00ff88" : "#ff3366";
+                points.forEach((p, i) => { 
+                    const x = i * (width/100);
+                    if(i==0) ctx.moveTo(x, getY(p)); else ctx.lineTo(x, getY(p));
+                });
+                ctx.stroke();
+
+                // Micio Positioning
+                const targetY = getY(points[points.length-1]) + (isLong ? -50 : 50);
+                catY += (targetY - catY) * 0.1;
+                drawMicio( (points.length-1) * (width/100), catY);
+            }
+            requestAnimationFrame(render);
         }
 
-        // Kontrole
-        window.addEventListener('mousedown', () => { 
-            isLong = true; 
-            statusEl.innerText = 'LONG POSITION';
-            statusEl.style.color = '#00ff88';
-        });
-        window.addEventListener('mouseup', () => { 
-            isLong = false; 
-            statusEl.innerText = 'SHORT POSITION';
-            statusEl.style.color = '#ff3366';
-        });
-        window.addEventListener('touchstart', (e) => { e.preventDefault(); isLong = true; });
-        window.addEventListener('touchend', () => { isLong = false; });
-        window.addEventListener('resize', resize);
+        window.onmousedown = () => isLong = true;
+        window.onmouseup = () => isLong = false;
+        window.ontouchstart = (e) => { e.preventDefault(); isLong = true; };
+        window.ontouchend = () => isLong = false;
 
-        init();
+        render();
     </script>
 </body>
 </html>
