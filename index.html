@@ -2,197 +2,355 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ilMicioTraderGame | Global Open-Source Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ilMicioTrader - Giga Edition</title>
     <style>
-        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #050608; --ai: #4285f4; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Courier New', monospace; overflow: hidden; }
-        
-        #game-ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: none; }
-        #start-screen { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; padding: 20px; }
-        
-        .panel { background: rgba(15, 23, 42, 0.9); padding: 20px; border: 1px solid #334155; backdrop-filter: blur(10px); border-radius: 12px; }
-        .stats-top { position: absolute; top: 20px; left: 20px; min-width: 250px; }
-        .signals { position: absolute; top: 20px; right: 20px; text-align: right; }
-        
-        .btn { background: var(--neon); color: #000; border: none; padding: 15px 40px; font-weight: 900; border-radius: 5px; cursor: pointer; pointer-events: auto; font-size: 1.2rem; text-transform: uppercase; transition: 0.3s; }
-        .btn:hover { box-shadow: 0 0 20px var(--neon); transform: translateY(-2px); }
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --micio-gold: #ffd700;
+            --micio-blue: #00d4ff;
+            --micio-fire: #ff4500;
+        }
 
-        #xp-bar { width: 100%; height: 4px; background: #1e293b; margin-top: 10px; border-radius: 2px; }
-        #xp-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
 
-        .ai-credit { font-size: 0.65rem; color: var(--ai); margin-top: 20px; letter-spacing: 2px; opacity: 0.8; }
-        canvas { display: block; }
+        /* UI Header */
+        #ui-layer {
+            position: absolute;
+            top: 10px;
+            width: 95%;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .stat-box {
+            background: rgba(22, 27, 34, 0.8);
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            backdrop-filter: blur(5px);
+        }
+
+        #rank-display {
+            font-weight: bold;
+            color: var(--micio-gold);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Tutorial Overlay */
+        #tutorial {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 0.9em;
+            border: 1px dashed #58a6ff;
+            max-width: 80%;
+            z-index: 5;
+        }
+
+        /* Micio Graphics Container */
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #1c2128 0%, #0d1117 100%);
+        }
+
+        #micio-sprite {
+            font-size: 100px;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+            user-select: none;
+            cursor: pointer;
+        }
+
+        /* Aura effects for Micio */
+        .aura {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            z-index: 1;
+            opacity: 0.3;
+            filter: blur(20px);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.3); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.2; }
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Trading Buttons */
+        #controls {
+            position: absolute;
+            bottom: 120px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1a6328;
+        }
+
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+
+        #start-screen {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .indicator-label {
+            position: absolute;
+            right: 10px;
+            bottom: 100px;
+            text-align: right;
+            font-family: monospace;
+            color: #8b949e;
+        }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
-        <h1 style="font-size: clamp(2rem, 10vw, 4.5rem); letter-spacing: 8px; margin: 0;">IL MICIO TRADER</h1>
-        <p style="color: var(--gold); margin-bottom: 30px; letter-spacing: 2px;">REAL-TIME BTC FUTURES SIMULATOR</p>
-        
-        <div class="panel" style="margin-bottom: 25px; max-width: 600px; border: 1px solid var(--ai);">
-            <p style="font-size: 0.9rem; line-height: 1.6;">
-                Master the volatility. Evolve your Micio from "Chunky" to "Giga" by trading the real BTC/USDT market. 
-                Built with real-time exchange data for the global trading community.
-            </p>
-            <div class="ai-credit">🤖 COLLABORATIVE AI DEVELOPMENT PROJECT</div>
-        </div>
-
-        <button class="btn" onclick="startGame()">Connect to Exchange</button>
-        <p style="font-size: 0.7rem; color: #475569; margin-top: 30px;">HOLD CLICK TO <b>LONG</b> | RELEASE TO <b>SHORT</b></p>
+        <h1 style="font-size: 3em; margin-bottom: 0.2em;">🐱 ilMicioTrader</h1>
+        <p style="color: #8b949e; margin-bottom: 2em;">Global Community Edition</p>
+        <button class="btn" onclick="startGame()">CONNECT TO EXCHANGE</button>
     </div>
 
-    <div id="game-ui">
-        <div class="stats-top panel">
-            <div style="font-size: 0.7rem; color: #94a3b8;">TOTAL EQUITY (DEMO)</div>
-            <div id="balance" style="font-size: 1.8rem; font-weight: 900;">$10,000.00</div>
-            <div id="pnl" style="font-weight: bold; font-size: 0.9rem;">P/L: $0.00</div>
-            <div id="xp-bar"><div id="xp-fill"></div></div>
-            <div id="rank" style="color: var(--gold); font-size: 0.7rem; margin-top: 5px;">RANK: CHUNKY (LVL 1)</div>
+    <div id="ui-layer">
+        <div class="stat-box">
+            <div id="rank-display">Rank: Chunky 🐱</div>
+            <div id="xp-bar">XP: 0 / 100</div>
         </div>
-
-        <div class="signals panel">
-            <div id="btc-price" style="font-size: 1.2rem; font-weight: bold; color: var(--neon);">CONNECTING...</div>
-            <div id="indicator-ema" style="font-size: 0.7rem; color: #94a3b8;">EMA(9): --</div>
-            <div id="indicator-rsi" style="font-size: 0.7rem; color: var(--gold);">RSI(14): 50.00</div>
+        <div class="stat-box" style="text-align: right;">
+            <div id="price-display" style="font-size: 1.2em; color: #58a6ff;">BTC: Loading...</div>
+            <div id="pnl-display">PnL: $0.00</div>
         </div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <div id="game-container">
+        <div id="micio-aura" class="aura"></div>
+        <div id="micio-sprite">🐱</div>
+        <canvas id="chartCanvas"></canvas>
+    </div>
+
+    <div id="tutorial">
+        <b>HOW TO PLAY:</b><br>
+        1. 🖱️ <b>Hold Click:</b> Open LONG (Buy) | 2. 🖱️ <b>Release:</b> Open SHORT (Sell)<br>
+        3. 📈 Follow the <b>Dashed Line (EMA)</b> to gain XP. <br>
+        4. ⚠️ Don't let your PnL hit -100% or you get Liquidated!
+    </div>
+
+    <div class="indicator-label">
+        <div id="rsi-val">RSI(14): --</div>
+        <div id="ema-val">EMA(9): --</div>
+    </div>
 
     <script>
-        /**
-         * IL MICIO TRADER GAME v1.2 (Global Edition)
-         * Purpose: Open-source educational trading tool
-         */
+        // --- GAME STATE ---
+        let balance = 1000;
+        let xp = 0;
+        let level = 1;
+        let rank = "CHUNKY";
+        let currentPrice = 0;
+        let entryPrice = 0;
+        let position = 'SHORT'; // Default starting position
+        let pnl = 0;
+        let priceHistory = [];
+        let rsi = 50;
+        let ema = 0;
 
-        const canvas = document.getElementById('gameCanvas');
+        const sprite = document.getElementById('micio-sprite');
+        const aura = document.getElementById('micio-aura');
+        const canvas = document.getElementById('chartCanvas');
         const ctx = canvas.getContext('2d');
-        let width, height, points = [], currentPrice = 0, catY = 0;
-        let balance = 10000, pnl = 0, level = 1, leverage = 5, xp = 0, isLong = false;
-        let isStarted = false, ema9 = 0, rsi = 50, pricesForRSI = [];
 
         function startGame() {
             document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-            isStarted = true;
-            initWS();
+            initWebSocket();
+            resizeCanvas();
+            animate();
         }
 
-        function initWS() {
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // --- MICIO EVOLUTION LOGIC ---
+        function updateEvolution() {
+            if (xp > 500) {
+                rank = "GIGA MICIO";
+                sprite.innerText = "👑"; // King cat
+                sprite.style.fontSize = "130px";
+                aura.style.background = "var(--micio-fire)";
+                document.getElementById('rank-display').style.color = "var(--micio-fire)";
+            } else if (xp > 200) {
+                rank = "ULTRA MICIO";
+                sprite.innerText = "🕶️"; // Cool cat
+                sprite.style.fontSize = "115px";
+                aura.style.background = "var(--micio-blue)";
+                document.getElementById('rank-display').style.color = "var(--micio-blue)";
+            } else {
+                rank = "CHUNKY";
+                sprite.innerText = "🐱";
+                aura.style.background = "var(--micio-gold)";
+            }
+            document.getElementById('rank-display').innerText = `Rank: ${rank} ${sprite.innerText}`;
+            document.getElementById('xp-bar').innerText = `XP: ${Math.floor(xp)} / ${level * 1000}`;
+        }
+
+        // --- TRADING LOGIC ---
+        window.addEventListener('mousedown', () => { position = 'LONG'; entryPrice = currentPrice; });
+        window.addEventListener('mouseup', () => { position = 'SHORT'; entryPrice = currentPrice; });
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); position = 'LONG'; entryPrice = currentPrice; });
+        window.addEventListener('touchend', (e) => { e.preventDefault(); position = 'SHORT'; entryPrice = currentPrice; });
+
+        function calculateIndicators() {
+            if (priceHistory.length < 14) return;
+            
+            // Simple EMA(9)
+            let sum = 0;
+            priceHistory.slice(-9).forEach(p => sum += p);
+            ema = sum / 9;
+
+            // Simple RSI(14) logic
+            let gains = 0, losses = 0;
+            for(let i = priceHistory.length - 14; i < priceHistory.length; i++) {
+                let diff = priceHistory[i] - priceHistory[i-1];
+                if (diff >= 0) gains += diff; else losses -= diff;
+            }
+            rsi = 100 - (100 / (1 + (gains / (losses || 1))));
+
+            document.getElementById('rsi-val').innerText = `RSI(14): ${rsi.toFixed(2)}`;
+            document.getElementById('rsi-val').style.color = (rsi > 70) ? '#ff4500' : (rsi < 30 ? '#238636' : '#8b949e');
+            document.getElementById('ema-val').innerText = `EMA(9): ${ema.toFixed(2)}`;
+        }
+
+        function initWebSocket() {
             const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-            ws.onopen = () => ws.send(JSON.stringify({
-                "op": "subscribe", "args": [{"instType": "SPOT", "channel": "ticker", "instId": "BTCUSDT"}]
-            }));
-            ws.onmessage = (e) => {
-                const d = JSON.parse(e.data);
-                if (d.data && d.data[0]) processMarketData(parseFloat(d.data[0].lastPr));
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    "op": "subscribe",
+                    "args": [{"instType": "sp", "channel": "ticker", "instId": "BTCUSDT"}]
+                }));
+            };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.data && data.data[0]) {
+                    currentPrice = parseFloat(data.data[0].lastPr);
+                    priceHistory.push(currentPrice);
+                    if (priceHistory.length > 200) priceHistory.shift();
+                    
+                    document.getElementById('price-display').innerText = `BTC: $${currentPrice.toLocaleString()}`;
+                    
+                    // PnL Logic
+                    if (entryPrice > 0) {
+                        let diff = position === 'LONG' ? (currentPrice - entryPrice) : (entryPrice - currentPrice);
+                        pnl = (diff / entryPrice) * 100 * 20; // 20x Leverage
+                        
+                        // XP Logic (Follow the trend)
+                        if ((position === 'LONG' && currentPrice > ema) || (position === 'SHORT' && currentPrice < ema)) {
+                            xp += 0.5;
+                            sprite.style.transform = `scale(${1 + (pnl/500)}) rotate(${pnl}deg)`;
+                        }
+
+                        if (pnl <= -100) { // Liquidation
+                            alert("KABOOM! LIQUIDATED! 🙀\nRestarting demo...");
+                            xp = Math.max(0, xp - 50);
+                            entryPrice = currentPrice;
+                        }
+                    }
+                    
+                    calculateIndicators();
+                    updateEvolution();
+                    document.getElementById('pnl-display').innerText = `PnL: ${pnl.toFixed(2)}%`;
+                    document.getElementById('pnl-display').style.color = pnl >= 0 ? "#238636" : "#f85149";
+                }
             };
         }
 
-        function calculateRSI(newPrice) {
-            pricesForRSI.push(newPrice);
-            if (pricesForRSI.length > 14) {
-                let gains = 0, losses = 0;
-                for (let i = 1; i < 14; i++) {
-                    let diff = pricesForRSI[pricesForRSI.length - i] - pricesForRSI[pricesForRSI.length - i - 1];
-                    if (diff >= 0) gains += diff; else losses -= diff;
-                }
-                rsi = 100 - (100 / (1 + (gains / (losses || 1))));
-                pricesForRSI.shift();
-            }
-        }
+        // --- VISUAL CHART ---
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (priceHistory.length > 2) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#58a6ff';
+                ctx.lineWidth = 2;
+                let step = canvas.width / 100;
+                let latest = priceHistory.slice(-100);
+                
+                let min = Math.min(...latest);
+                let max = Math.max(...latest);
+                let range = max - min;
 
-        function processMarketData(price) {
-            if (currentPrice) {
-                ema9 = (price - ema9) * (2/10) + ema9;
-                calculateRSI(price);
-                const move = balance * ((price - currentPrice) / currentPrice) * leverage * (isLong ? 1 : -1);
-                pnl += move;
+                latest.forEach((p, i) => {
+                    let x = i * step;
+                    let y = canvas.height - ((p - min) / range * (canvas.height * 0.5) + (canvas.height * 0.25));
+                    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
 
-                // XP awarded for trading with the trend (EMA alignment)
-                if ((isLong && price > ema9) || (!isLong && price < ema9)) {
-                    xp += 1.5;
-                    if (xp > level * 100) levelUp();
-                }
-                if (balance + pnl <= 0) location.reload();
-            } else { ema9 = price; }
-            currentPrice = price;
-            points.push(price);
-            if (points.length > 100) points.shift();
-            updateUI();
-        }
-
-        function levelUp() {
-            level++; leverage += 5; xp = 0;
-            const titles = ["CHUNKY", "TRADER", "BULL", "WHALE", "GIGA MICIO"];
-            document.getElementById('rank').innerText = `RANK: ${titles[Math.min(level-1, 4)]} (LVL ${level})`;
-        }
-
-        function updateUI() {
-            document.getElementById('balance').innerText = "$" + (balance + pnl).toLocaleString(undefined,{minimumFractionDigits:2});
-            document.getElementById('pnl').innerText = `P/L: ${pnl>=0?"+":""}${pnl.toFixed(2)} [${leverage}x]`;
-            document.getElementById('pnl').style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
-            document.getElementById('btc-price').innerText = currentPrice.toFixed(2);
-            document.getElementById('indicator-ema').innerText = `EMA(9): ${ema9.toFixed(2)}`;
-            document.getElementById('indicator-rsi').innerText = `RSI(14): ${rsi.toFixed(2)}`;
-            document.getElementById('xp-fill').style.width = (xp / (level * 100) * 100) + "%";
-        }
-
-        function drawMicio(x, y) {
-            ctx.save();
-            ctx.translate(x, y);
-            const breath = Math.sin(Date.now() / 250) * 3;
-            const w = Math.max(15, 42 - (level * 4)) + breath;
-            const h = Math.min(60, 22 + (level * 6)) + breath;
-
-            let glow = isLong ? "#00ff88" : "#ff3366";
-            ctx.shadowBlur = (rsi < 30 || rsi > 70) ? 35 : 15;
-            ctx.shadowColor = (rsi < 30 || rsi > 70) ? "#fbbf24" : glow;
-            
-            ctx.fillStyle = "#111";
-            ctx.beginPath(); ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = ctx.shadowColor; ctx.lineWidth = 2; ctx.stroke();
-
-            // Eyes & Muscles
-            ctx.fillStyle = "#fff";
-            ctx.beginPath(); ctx.arc(-8, -h/4, 3, 0, Math.PI*2); ctx.arc(8, -h/4, 3, 0, Math.PI*2); ctx.fill();
-            if (level >= 3) {
-                ctx.beginPath(); ctx.arc(-w, 0, 8, 0, Math.PI*2); ctx.arc(w, 0, 8, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-            }
-            ctx.restore();
-        }
-
-        function render() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            ctx.fillStyle = "#050608"; ctx.fillRect(0, 0, width, height);
-
-            ctx.strokeStyle = "#111827";
-            for(let i=0; i<width; i+=60) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke(); }
-
-            if (points.length > 2) {
-                const min = Math.min(...points), max = Math.max(...points), range = (max-min)||20;
-                const getY = (p) => height/2 + (height/3) * (-(p - (min+max)/2) / (range/2));
-                const spacing = width/100;
-
-                ctx.setLineDash([5, 5]); ctx.strokeStyle = "rgba(251, 191, 36, 0.2)";
-                ctx.beginPath(); points.forEach((p, i) => { if(i==0) ctx.moveTo(i*spacing, getY(ema9)); else ctx.lineTo(i*spacing, getY(ema9)); }); ctx.stroke();
+                // Draw EMA line
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                ctx.stroke();
                 ctx.setLineDash([]);
-
-                ctx.beginPath(); ctx.lineWidth = 3; ctx.strokeStyle = isLong ? "#00ff88" : "#ff3366";
-                points.forEach((p, i) => { if(i==0) ctx.moveTo(i*spacing, getY(p)); else ctx.lineTo(i*spacing, getY(p)); }); ctx.stroke();
-
-                catY += (getY(points[points.length-1]) + (isLong ? -60 : 60) - catY) * 0.12;
-                drawMicio((points.length-1) * spacing, catY);
             }
-            requestAnimationFrame(render);
+            requestAnimationFrame(animate);
         }
 
-        window.onmousedown = () => isLong = true; window.onmouseup = () => isLong = false;
-        window.ontouchstart = (e) => { e.preventDefault(); isLong = true; }; window.ontouchend = () => isLong = false;
-        render();
+        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 </html>
