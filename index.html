@@ -1,47 +1,20 @@
-<!DOCTYPE html>
-<html lang="sl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Hybrid 1s/1m</title>
-    <style>
-        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #050608; --gray: #64748b; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        
-        #game-ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: none; }
-        #start-screen { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
-        
-        .panel { background: rgba(15, 23, 42, 0.9); padding: 12px; border: 1px solid #334155; border-radius: 12px; }
-        .stats-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; }
-        
-        #controls { position: absolute; bottom: 15px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: auto; z-index: 20; }
-        #rsi-container { width: 94%; height: 90px; background: rgba(0,0,0,0.85); border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; position: relative; }
-        #rsiCanvas { width: 100%; height: 100%; display: block; }
-        
-        #rsi-value { position: absolute; top: 5px; left: 10px; font-size: 12px; font-weight: bold; color: var(--gold); z-index: 5; }
-
-        .btn-row { display: flex; width: 100%; justify-content: space-evenly; }
-        .trade-btn { flex: 1; margin: 0 5px; padding: 18px 0; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); font-weight: 900; color: white; background: rgba(20,20,30,0.9); }
-        
-        #btn-long { border-color: var(--neon); color: var(--neon); }
-        #btn-short { border-color: var(--red); color: var(--red); }
-        #btn-exit { border-color: var(--gray); color: var(--gray); }
-        
-        .active-long { background: var(--neon) !important; color: black !important; }
-        .active-short { background: var(--red) !important; color: white !important; }
-        .active-exit { background: var(--gray) !important; color: white !important; }
-
-        #xp-bar { width: 100%; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 5px; }
-        #xp-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
-        canvas { display: block; }
-    </style>
-</head>
 <body>
 
     <div id="start-screen">
-        <h1 style="color: var(--neon); letter-spacing: 2px;">ilMicioTrader</h1>
-        <p style="color: var(--gray);">Hybrid: 1s Chart / 1m RSI</p>
-        <button class="trade-btn" style="width:200px; border-color: var(--gold);" onclick="startGame()">INITIALIZE</button>
+        <div class="panel" style="max-width: 85%; pointer-events: auto; border-color: var(--gold);">
+            <h1 style="color: var(--neon); margin-top: 0; letter-spacing: 3px;">🐈 ilMicioTrader 🚀</h1>
+            <p style="color: var(--gold); font-size: 0.9rem; font-weight: bold;">OPEN-SOURCE EXPERIMENT v1.0</p>
+            
+            <div style="text-align: left; font-size: 0.85rem; line-height: 1.4; color: #cbd5e1; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p><strong>🎧 Realni trg:</strong> Povezani smo direktno na Bitget WS (1s) in REST API (1m). Kar vidiš, se dogaja v tem trenutku na Wall Streetu (ali v kleti nekega kita).</p>
+                <p><strong>💰 Fake Money:</strong> Tvojih $10,000 je bolj fejk kot oglasi za hujšanje. Namen tega projekta je 100% izobraževalen.</p>
+                <p><strong>🎁 Najino darilo:</strong> To je najin skupni "Open Source" projekt. Jaz sem dal logiko, ti vizijo (in mačje emojije). Uporabi to za učenje RSI strategij, ne za finančni samomor.</p>
+                <p style="text-align: center; color: var(--red); font-weight: bold;">⚠️ OPOZORILO: Trading povzroča odvisnost in potenje dlani!</p>
+            </div>
+
+            <p id="status-text" style="color: var(--gray); font-style: italic;">Čakam na tvoj ukaz, kapitan...</p>
+            <button class="trade-btn" style="width:100%; border-color: var(--neon); background: rgba(0,255,136,0.1);" onclick="startGame()">VSTOPI V MATRIX (START)</button>
+        </div>
     </div>
 
     <div id="game-ui">
@@ -58,7 +31,7 @@
         </div>
         <div id="controls">
             <div id="rsi-container">
-                <div id="rsi-value">RSI: --</div>
+                <div id="rsi-value">RSI (1m): --</div>
                 <canvas id="rsiCanvas"></canvas>
             </div>
             <div class="btn-row">
@@ -81,13 +54,44 @@
         let balance = 10000, pnl = 0, level = 1, leverage = 5, xp = 0, mode = 'EXIT';
         let isStarted = false, minuteBuffer = [], timer60 = 0, currentRSI = 50;
 
-        function startGame() {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-            resize();
-            isStarted = true;
-            initWS();
-            render();
+        async function fetchHistory() {
+            try {
+                const res = await fetch('https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1m&limit=100');
+                const json = await res.json();
+                if (json.data) {
+                    const closes = json.data.map(d => parseFloat(d[4])).reverse();
+                    minuteBuffer = closes;
+                    rsiHistory = [];
+                    for (let i = 14; i < closes.length; i++) {
+                        let gains = 0, losses = 0;
+                        for (let j = i - 13; j <= i; j++) {
+                            let diff = closes[j] - closes[j-1];
+                            if (diff >= 0) gains += diff; else losses -= diff;
+                        }
+                        let rs = (gains / 14) / (Math.abs(losses / 14) || 1);
+                        rsiHistory.push(100 - (100 / (1 + rs)));
+                    }
+                    currentPrice = closes[closes.length - 1];
+                    for(let i=0; i<80; i++) points.push(currentPrice);
+                    currentRSI = rsiHistory[rsiHistory.length - 1] || 50;
+                }
+            } catch (e) { console.error("History fail:", e); }
+        }
+
+        async function startGame() {
+            const status = document.getElementById('status-text');
+            status.innerText = "🐈 Praskam podatke z Bitgeta...";
+            await fetchHistory();
+            status.innerText = "🚀 Pripravljen na moon!";
+            
+            setTimeout(() => {
+                document.getElementById('start-screen').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'block';
+                resize();
+                isStarted = true;
+                initWS();
+                render();
+            }, 800);
         }
 
         function setMode(m) {
@@ -108,33 +112,23 @@
         }
 
         function handleData(price) {
-            if (!currentPrice) {
-                currentPrice = price;
-                for(let i=0; i<80; i++) { points.push(price); }
-                for(let i=0; i<60; i++) { rsiHistory.push(50); }
-            }
-
-            // Real-time PnL (1s)
+            if (!currentPrice) currentPrice = price;
             if (mode !== 'EXIT') {
                 let change = (price - currentPrice) / currentPrice;
                 pnl += (balance + pnl) * change * leverage * (mode === 'LONG' ? 1 : -1);
             }
             if (balance + pnl <= 0) { balance = 10000; pnl = 0; setMode('EXIT'); }
-            
             currentPrice = price;
-            
-            // Glavni graf (1s osveževanje)
             points.push(price);
             if(points.length > 80) points.shift();
-
-            // RSI Logika (1m timeframe)
             timer60++;
             if (timer60 >= 60) {
                 minuteBuffer.push(price);
-                if(minuteBuffer.length > 15) {
+                if (minuteBuffer.length > 15) {
                     let gains = 0, losses = 0;
-                    for (let i = 1; i < 15; i++) {
-                        let diff = minuteBuffer[minuteBuffer.length-i] - minuteBuffer[minuteBuffer.length-i-1];
+                    const startIdx = minuteBuffer.length - 14;
+                    for (let i = startIdx; i < minuteBuffer.length; i++) {
+                        let diff = minuteBuffer[i] - minuteBuffer[i-1];
                         if (diff >= 0) gains += diff; else losses -= diff;
                     }
                     let rs = (gains/14) / (Math.abs(losses/14) || 1);
@@ -142,9 +136,9 @@
                     rsiHistory.push(currentRSI);
                     if(rsiHistory.length > 60) rsiHistory.shift();
                 }
-                if(minuteBuffer.length > 20) minuteBuffer.shift();
+                if(minuteBuffer.length > 110) minuteBuffer.shift();
                 timer60 = 0;
-                xp += 5; if (xp > level * 100) { level++; xp = 0; leverage += 5; }
+                xp += 10; if (xp > level * 100) { level++; xp = 0; leverage += 5; }
             }
             updateUI();
         }
@@ -156,6 +150,7 @@
             document.getElementById('pnl').style.color = pnl >= 0 ? "#00ff88" : "#ff3366";
             document.getElementById('rsi-value').innerText = `RSI (1m): ${currentRSI.toFixed(1)}`;
             document.getElementById('xp-fill').style.width = (xp / (level * 100) * 100) + "%";
+            document.getElementById('rank-text').innerText = `RANK: LVL ${level} | TICK: ${timer60}/60`;
         }
 
         function resize() {
@@ -164,46 +159,44 @@
             rsiCanvas.width = rsiCanvas.offsetWidth;
             rsiCanvas.height = rsiCanvas.offsetHeight;
         }
+        window.onresize = resize;
 
         function drawRSI() {
             rsiCtx.clearRect(0, 0, rsiCanvas.width, rsiCanvas.height);
-            // Grid Lines
             rsiCtx.lineWidth = 1;
             [30, 50, 70].forEach(l => {
                 let y = rsiCanvas.height - (l/100 * rsiCanvas.height);
-                rsiCtx.strokeStyle = l === 50 ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.3)";
+                rsiCtx.strokeStyle = "rgba(255,255,255,0.15)";
                 rsiCtx.setLineDash([5, 5]);
                 rsiCtx.beginPath(); rsiCtx.moveTo(0, y); rsiCtx.lineTo(rsiCanvas.width, y); rsiCtx.stroke();
                 rsiCtx.setLineDash([]);
             });
-            // Line
-            rsiCtx.beginPath(); rsiCtx.lineWidth = 3;
-            rsiHistory.forEach((r, i) => {
-                let x = i * (rsiCanvas.width / 59);
-                let y = rsiCanvas.height - (r/100 * rsiCanvas.height);
-                rsiCtx.strokeStyle = r > 70 ? "#ff3366" : (r < 30 ? "#00ff88" : "#4285f4");
-                if(i===0) rsiCtx.moveTo(x, y); else rsiCtx.lineTo(x, y);
-            });
-            rsiCtx.stroke();
+            if (rsiHistory.length > 2) {
+                rsiCtx.beginPath(); rsiCtx.lineWidth = 3;
+                rsiHistory.forEach((r, i) => {
+                    let x = i * (rsiCanvas.width / (rsiHistory.length - 1));
+                    let y = rsiCanvas.height - (r/100 * rsiCanvas.height);
+                    rsiCtx.strokeStyle = r > 70 ? "#ff3366" : (r < 30 ? "#00ff88" : "#4285f4");
+                    if(i===0) rsiCtx.moveTo(x, y); else rsiCtx.lineTo(x, y);
+                });
+                rsiCtx.stroke();
+            }
         }
 
         function render() {
             if (!isStarted) return;
             ctx.fillStyle = "#050608"; ctx.fillRect(0, 0, width, height);
             drawRSI();
-
             if (points.length > 2) {
                 const min = Math.min(...points), max = Math.max(...points), range = (max-min)||10;
                 const getY = (p) => height/2.5 + (height/4) * (-(p - (min+max)/2) / (range/2));
                 const spacing = width / 80;
-
                 ctx.beginPath(); ctx.lineWidth = 4;
                 ctx.strokeStyle = mode === 'EXIT' ? "#64748b" : (mode === 'LONG' ? "#00ff88" : "#ff3366");
                 points.forEach((p, i) => {
                     if(i===0) ctx.moveTo(i*spacing, getY(p)); else ctx.lineTo(i*spacing, getY(p));
                 });
                 ctx.stroke();
-
                 catY += (getY(points[points.length-1]) - catY) * 0.15;
                 ctx.font = "32px Arial"; ctx.textAlign = "center";
                 ctx.fillText(pnl > 0 ? "🤑" : "🐱", (points.length-1)*spacing, catY);
@@ -212,4 +205,3 @@
         }
     </script>
 </body>
-</html>
