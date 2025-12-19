@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Creative RSI</title>
+    <title>ilMicioTrader - Fixed & Creative</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #050608; --gray: #475569; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; }
@@ -29,18 +29,14 @@
         #btn-short { border-bottom: 4px solid var(--red); }
         #btn-exit { border-bottom: 4px solid var(--gray); }
         
-        .active-long { background: var(--neon) !important; color: #000 !important; transform: translateY(-2px); }
-        .active-short { background: var(--red) !important; color: #fff !important; transform: translateY(-2px); }
+        .active-long { background: var(--neon) !important; color: #000 !important; }
+        .active-short { background: var(--red) !important; color: #fff !important; }
         .active-exit { background: var(--gray) !important; color: #fff !important; }
 
-        /* CREATIVE RSI PANEL */
         #rsi-panel { 
-            width: 94%; height: 70px; background: #000; border: 1px solid #334155; 
+            width: 94%; height: 60px; background: #000; border: 1px solid #334155; 
             border-radius: 8px; position: relative; overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
         }
-        .rsi-line-70 { position: absolute; top: 30%; width: 100%; border-top: 1px dashed rgba(255, 51, 102, 0.4); }
-        .rsi-line-30 { position: absolute; bottom: 30%; width: 100%; border-top: 1px dashed rgba(0, 255, 136, 0.4); }
 
         #xp-bar { width: 100%; height: 4px; background: #1e293b; border-radius: 2px; margin-top: 4px; overflow: hidden; }
         #xp-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
@@ -51,27 +47,25 @@
 
     <div id="start-screen">
         <h1 style="font-size: 2.5rem; letter-spacing: 4px; margin: 0;">ilMicio<span style="color:var(--neon)">Trader</span></h1>
-        <p style="color: var(--gray); margin-bottom: 2rem;">ADVANCED COMMUNITY EDITION</p>
+        <p style="color: var(--gray); margin-bottom: 2rem;">RSI COMMUNITY EDITION</p>
         <button class="trade-btn" style="width:220px; border: 2px solid var(--gold); color: var(--gold);" onclick="startGame()">INITIALIZE</button>
     </div>
 
     <div id="game-ui">
         <div class="stats-top panel">
             <div style="flex:1">
-                <div id="balance" style="font-size: 1.1rem; font-weight: 900; letter-spacing: -0.5px;">$10,000.00</div>
+                <div id="balance" style="font-size: 1.1rem; font-weight: 900;">$10,000.00</div>
                 <div id="xp-bar"><div id="xp-fill"></div></div>
-                <div id="rank-text" style="font-size: 10px; color: var(--gold); font-weight: bold; margin-top: 2px;">RANK: BAJSO</div>
+                <div id="rank-text" style="font-size: 10px; color: var(--gold); margin-top: 2px;">RANK: BAJSO</div>
             </div>
             <div style="text-align: right; flex:1">
-                <div id="btc-price" style="font-size: 1.1rem; font-weight: bold; color: var(--neon); font-variant-numeric: tabular-nums;">--</div>
+                <div id="btc-price" style="font-size: 1.1rem; font-weight: bold; color: var(--neon);">--</div>
                 <div id="pnl" style="font-size: 11px; font-weight: bold;">P/L: $0.00</div>
             </div>
         </div>
 
         <div id="controls">
             <div id="rsi-panel">
-                <div class="rsi-line-70"></div>
-                <div class="rsi-line-30"></div>
                 <canvas id="rsiCanvas"></canvas>
             </div>
             <div class="btn-row">
@@ -98,8 +92,8 @@
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
             isStarted = true;
-            initWS();
             resize();
+            initWS();
         }
 
         function setMode(m) {
@@ -147,7 +141,9 @@
                         xp += 3; if (xp > level * 100) levelUp();
                     }
                 }
-                if (balance + pnl <= 0) location.reload();
+                if (balance + pnl <= 0) { 
+                    balance = 10000; pnl = 0; xp = 0; level = 1; setMode('EXIT');
+                }
             } else { ema9 = price; }
             currentPrice = price;
             points.push(price);
@@ -157,7 +153,7 @@
 
         function levelUp() {
             level++; xp = 0; leverage += 5;
-            const t = ["BAJSO", "TRADER", "BULLY", "ALPHA", "GIGA MICIO"];
+            const t = ["BAJSO", "TRADER", "BULLY", "ALPHA", "GIGA"];
             document.getElementById('rank-text').innerText = `RANK: ${t[Math.min(level-1, 4)]} (LVL ${level})`;
         }
 
@@ -165,7 +161,7 @@
             document.getElementById('balance').innerText = "$" + (balance + pnl).toLocaleString(undefined,{minimumFractionDigits:2});
             const p = document.getElementById('pnl');
             p.innerText = `P/L: ${pnl>=0?"+":""}${pnl.toFixed(2)}`;
-            p.style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
+            p.style.color = pnl >= 0 ? "#00ff88" : "#ff3366";
             document.getElementById('btc-price').innerText = currentPrice.toFixed(2);
             document.getElementById('xp-fill').style.width = (xp / (level * 100) * 100) + "%";
         }
@@ -173,8 +169,8 @@
         function resize() {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
-            rsiCanvas.width = document.getElementById('rsi-panel').clientWidth;
-            rsiCanvas.height = 70;
+            rsiCanvas.width = rsiCanvas.parentElement.clientWidth;
+            rsiCanvas.height = 60;
         }
         window.onresize = resize;
 
@@ -182,45 +178,30 @@
             rsiCtx.clearRect(0, 0, rsiCanvas.width, rsiCanvas.height);
             if(rsiHistory.length < 2) return;
 
-            // DRAW GRADIENT BACKGROUND (BULL/BEAR CLOUDS)
             let lastRSI = rsiHistory[rsiHistory.length-1];
-            rsiCtx.fillStyle = lastRSI > 50 ? `rgba(0, 255, 136, ${Math.min((lastRSI-50)/100, 0.15)})` : `rgba(255, 51, 102, ${Math.min((50-lastRSI)/100, 0.15)})`;
+            rsiCtx.fillStyle = lastRSI > 50 ? `rgba(0, 255, 136, 0.1)` : `rgba(255, 51, 102, 0.1)`;
             rsiCtx.fillRect(0, 0, rsiCanvas.width, rsiCanvas.height);
 
-            // DRAW RSI LINE
             rsiCtx.beginPath();
-            rsiCtx.lineWidth = 3;
+            rsiCtx.lineWidth = 2;
             rsiHistory.forEach((r, i) => {
                 let x = i * (rsiCanvas.width / 59);
                 let y = rsiCanvas.height - (r / 100 * rsiCanvas.height);
-                
-                // Color switching logic
-                let color = "#4285f4"; // Neutral
-                if (r > 70) color = "var(--red)";
-                else if (r < 30) color = "var(--neon)";
-                
-                rsiCtx.strokeStyle = color;
+                rsiCtx.strokeStyle = r > 70 ? "#ff3366" : (r < 30 ? "#00ff88" : "#4285f4");
                 if(i === 0) rsiCtx.moveTo(x, y); else rsiCtx.lineTo(x, y);
-                
-                // Glow effect for extreme values
-                if (r > 70 || r < 30) {
-                    rsiCtx.shadowBlur = 10;
-                    rsiCtx.shadowColor = color;
-                } else { rsiCtx.shadowBlur = 0; }
             });
             rsiCtx.stroke();
         }
 
         function drawMicio(x, y) {
             ctx.save(); ctx.translate(x, y);
-            let color = mode === 'EXIT' ? var(--gray) : (mode === 'LONG' ? "var(--neon)" : "var(--red)");
-            ctx.shadowBlur = 20; ctx.shadowColor = color;
-            ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.stroke();
-            ctx.font = "28px Arial"; ctx.textAlign = "center";
-            let emoji = mode === 'EXIT' ? "😴" : (pnl > 50 ? "🤑" : (pnl < -50 ? "🙀" : "🐱"));
-            if(level >= 5) emoji = "👑";
-            ctx.fillText(emoji, 0, 10); ctx.restore();
+            let color = mode === 'EXIT' ? "#475569" : (mode === 'LONG' ? "#00ff88" : "#ff3366");
+            ctx.shadowBlur = 15; ctx.shadowColor = color;
+            ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+            ctx.font = "24px Arial"; ctx.textAlign = "center";
+            let emoji = mode === 'EXIT' ? "😴" : (pnl > 0 ? "🤑" : (pnl < 0 ? "😰" : "🐱"));
+            ctx.fillText(emoji, 0, 8); ctx.restore();
         }
 
         function render() {
@@ -233,15 +214,10 @@
                 const getY = (p) => height/2.2 + (height/5) * (-(p - (min+max)/2) / (range/2));
                 const spacing = width / 60;
 
-                // Price line with gradient
-                let grad = ctx.createLinearGradient(0, 0, width, 0);
-                grad.addColorStop(0, "rgba(66, 133, 244, 0)");
-                grad.addColorStop(1, mode === 'EXIT' ? "#475569" : (mode === 'LONG' ? "#00ff88" : "#ff3366"));
-                
-                ctx.beginPath(); ctx.lineWidth = 4; ctx.strokeStyle = grad;
+                ctx.beginPath(); ctx.lineWidth = 3;
+                ctx.strokeStyle = mode === 'EXIT' ? "#475569" : (mode === 'LONG' ? "#00ff88" : "#ff3366");
                 points.forEach((p, i) => {
-                    let x = i * spacing; let y = getY(p);
-                    if(i==0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    if(i==0) ctx.moveTo(i*spacing, getY(p)); else ctx.lineTo(i*spacing, getY(p));
                 });
                 ctx.stroke();
 
