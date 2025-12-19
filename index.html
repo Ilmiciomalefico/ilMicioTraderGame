@@ -22,6 +22,7 @@
             align-items: center;
             height: 100vh;
             user-select: none;
+            touch-action: none;
         }
         #ui-layer {
             position: absolute;
@@ -30,17 +31,19 @@
             z-index: 10;
         }
         .stat-box {
-            background: rgba(22, 27, 34, 0.8);
+            background: rgba(22, 27, 34, 0.9);
             padding: 10px; border-radius: 10px;
             border: 1px solid #30363d;
+            min-width: 120px;
         }
         #tutorial {
             position: absolute; bottom: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             padding: 15px; border-radius: 15px;
             text-align: center; font-size: 0.8em;
             border: 1px solid #58a6ff;
             max-width: 85%; z-index: 5;
+            pointer-events: none;
         }
         #game-container {
             position: relative; width: 100%; height: 100%;
@@ -51,13 +54,13 @@
             z-index: 2; cursor: pointer;
         }
         .aura {
-            position: absolute; width: 120px; height: 120px;
+            position: absolute; width: 130px; height: 130px;
             border-radius: 50%; z-index: 1; opacity: 0.4;
-            filter: blur(25px); animation: pulse 2s infinite;
+            filter: blur(30px); animation: pulse 2s infinite;
         }
         @keyframes pulse {
             0% { transform: scale(1); opacity: 0.3; }
-            50% { transform: scale(1.4); opacity: 0.5; }
+            50% { transform: scale(1.5); opacity: 0.6; }
             100% { transform: scale(1); opacity: 0.3; }
         }
         canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -67,23 +70,24 @@
         }
         .btn {
             background: #238636; color: white; border: none;
-            padding: 15px 30px; border-radius: 8px; font-weight: bold; cursor: pointer;
+            padding: 15px 40px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.2em;
         }
     </style>
 </head>
 <body>
     <div id="start-screen">
-        <h1>🐱 ilMicioTrader</h1>
+        <h1 style="font-size: 2.5em; margin-bottom: 10px;">🐱 ilMicioTrader</h1>
+        <p style="color: #8b949e; margin-bottom: 30px;">Real-time BTC Futures Simulator</p>
         <button class="btn" onclick="startGame()">CONNECT TO EXCHANGE</button>
     </div>
 
     <div id="ui-layer">
         <div class="stat-box">
-            <div id="rank-display" style="color:var(--micio-gold)">Rank: CHUNKY 🐱</div>
+            <div id="rank-display" style="color:var(--micio-gold); font-weight: bold;">Rank: CHUNKY 🐱</div>
             <div id="xp-display">XP: 0</div>
         </div>
         <div class="stat-box" style="text-align: right;">
-            <div id="price-display" style="color: #58a6ff;">BTC: --</div>
+            <div id="price-display" style="color: #58a6ff; font-weight: bold;">BTC: Fetching...</div>
             <div id="pnl-display">PnL: 0%</div>
         </div>
     </div>
@@ -96,8 +100,8 @@
 
     <div id="tutorial">
         <b>HOW TO PLAY:</b><br>
-        HOLD CLICK = LONG | RELEASE = SHORT<br>
-        Follow the <b>Price Trend</b> to gain XP!
+        PUSH & HOLD = <b>LONG</b> | RELEASE = <b>SHORT</b><br>
+        Gain XP by following the trend. Watch out for Liquidation!
     </div>
 
     <script>
@@ -119,51 +123,93 @@
         }
 
         function initWS() {
+            // Corrected Bitget V2 WS URL and subscription format
             const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
+            
             ws.onopen = () => {
-                ws.send(JSON.stringify({"op": "subscribe", "args": [{"instType": "sp", "channel": "ticker", "instId": "BTCUSDT"}]}));
+                console.log("Connected to Bitget");
+                ws.send(JSON.stringify({
+                    "op": "subscribe",
+                    "args": [{
+                        "instType": "SPOT",
+                        "channel": "ticker",
+                        "instId": "BTCUSDT"
+                    }]
+                }));
             };
+
             ws.onmessage = (e) => {
                 const d = JSON.parse(e.data);
                 if (d.data && d.data[0]) {
                     currentPrice = parseFloat(d.data[0].lastPr);
                     priceHistory.push(currentPrice);
                     if(priceHistory.length > 100) priceHistory.shift();
+                    
                     document.getElementById('price-display').innerText = `BTC: $${currentPrice.toLocaleString()}`;
                     
-                    if (entryPrice > 0) {
-                        let diff = position === 'LONG' ? (currentPrice - entryPrice) : (entryPrice - currentPrice);
-                        pnl = (diff / entryPrice) * 100 * 20;
-                        if(pnl > 0) xp += 0.1;
-                        if(pnl < -100) { alert("LIQUIDATED!"); xp = 0; entryPrice = currentPrice; }
-                        
-                        document.getElementById('pnl-display').innerText = `PnL: ${pnl.toFixed(2)}%`;
-                        document.getElementById('pnl-display').style.color = pnl >= 0 ? "#238636" : "#f85149";
-                        document.getElementById('xp-display').innerText = `XP: ${Math.floor(xp)}`;
-                        
-                        // Evolution
-                        const s = document.getElementById('micio-sprite');
-                        const a = document.getElementById('micio-aura');
-                        if(xp > 100) { s.innerText="🕶️"; a.style.background="var(--micio-blue)"; }
-                        if(xp > 300) { s.innerText="👑"; a.style.background="var(--micio-fire)"; }
+                    if (entryPrice === 0) entryPrice = currentPrice;
+
+                    // PnL & XP logic
+                    let diff = position === 'LONG' ? (currentPrice - entryPrice) : (entryPrice - currentPrice);
+                    pnl = (diff / entryPrice) * 100 * 50; // 50x leverage for excitement
+                    
+                    if(pnl > 0) xp += 0.2;
+                    
+                    if(pnl <= -100) {
+                        alert("Micio got REKT! (Liquidated) 🙀");
+                        xp = Math.max(0, xp - 20);
+                        entryPrice = currentPrice;
+                    }
+
+                    document.getElementById('pnl-display').innerText = `PnL: ${pnl.toFixed(2)}%`;
+                    document.getElementById('pnl-display').style.color = pnl >= 0 ? "#238636" : "#f85149";
+                    document.getElementById('xp-display').innerText = `XP: ${Math.floor(xp)}`;
+                    
+                    // Micio Evolution
+                    const s = document.getElementById('micio-sprite');
+                    const a = document.getElementById('micio-aura');
+                    const r = document.getElementById('rank-display');
+                    
+                    if(xp > 100 && xp <= 300) {
+                        s.innerText="🕶️"; 
+                        a.style.background="var(--micio-blue)";
+                        r.innerText = "Rank: ULTRA 🕶️";
+                        r.style.color = "var(--micio-blue)";
+                    } else if(xp > 300) {
+                        s.innerText="👑"; 
+                        a.style.background="var(--micio-fire)";
+                        r.innerText = "Rank: GIGA 👑";
+                        r.style.color = "var(--micio-fire)";
                     }
                 }
             };
+            
+            ws.onerror = (err) => console.error("WS Error", err);
+            ws.onclose = () => setTimeout(initWS, 2000); // Auto-reconnect
         }
 
-        window.onmousedown = () => { position = 'LONG'; entryPrice = currentPrice; };
-        window.onmouseup = () => { position = 'SHORT'; entryPrice = currentPrice; };
-        window.ontouchstart = (e) => { e.preventDefault(); position = 'LONG'; entryPrice = currentPrice; };
-        window.ontouchend = (e) => { e.preventDefault(); position = 'SHORT'; entryPrice = currentPrice; };
+        // Controls
+        const setLong = () => { position = 'LONG'; entryPrice = currentPrice; };
+        const setShort = () => { position = 'SHORT'; entryPrice = currentPrice; };
+
+        window.onmousedown = setLong;
+        window.onmouseup = setShort;
+        window.ontouchstart = (e) => { e.preventDefault(); setLong(); };
+        window.ontouchend = (e) => { e.preventDefault(); setShort(); };
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if(priceHistory.length > 2) {
-                ctx.beginPath(); ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 2;
-                let min = Math.min(...priceHistory); let max = Math.max(...priceHistory);
+                ctx.beginPath(); 
+                ctx.strokeStyle = 'rgba(88, 166, 255, 0.6)'; 
+                ctx.lineWidth = 3;
+                let min = Math.min(...priceHistory); 
+                let max = Math.max(...priceHistory);
+                let range = max - min || 1;
+
                 priceHistory.forEach((p, i) => {
                     let x = i * (canvas.width / 100);
-                    let y = canvas.height - ((p - min) / (max - min || 1) * (canvas.height * 0.5) + (canvas.height * 0.25));
+                    let y = canvas.height - ((p - min) / range * (canvas.height * 0.4) + (canvas.height * 0.3));
                     if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
