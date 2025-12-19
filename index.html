@@ -1,181 +1,197 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - 3D Cyber Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+    <title>ilMicioTrader - 3D Visual Fix</title>
     <style>
         :root {
-            --neon-blue: #00f3ff;
+            --bg: #050a0f;
+            --neon-blue: #00d4ff;
             --neon-green: #39ff14;
             --neon-red: #ff003c;
-            --neon-gold: #ffcc00;
-            --bg: #020205;
+            --gold: #ffd700;
         }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; touch-action: none; }
+        body { 
+            margin: 0; padding: 0; background: var(--bg); color: white; 
+            font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; height: 100vh;
+            user-select: none; touch-action: none;
+        }
         
-        /* 3D Scene Container */
-        #scene-container {
-            position: relative; width: 100vw; height: 100vh;
-            perspective: 1000px; display: flex; justify-content: center; align-items: center;
+        /* UI Layer */
+        #top-bar {
+            position: absolute; top: 0; width: 100%; padding: 20px;
+            display: flex; justify-content: space-between; z-index: 100;
+            box-sizing: border-box; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+        .stat-group { display: flex; flex-direction: column; }
+        #price-label { font-size: 1.2rem; font-weight: bold; color: var(--neon-blue); }
+        #pnl-label { font-size: 2rem; font-weight: 900; }
+        #xp-label { font-size: 0.9rem; color: #888; }
+
+        /* Game Scene */
+        #game-area {
+            position: relative; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            perspective: 1000px;
+        }
+        #micio-container {
+            position: relative; z-index: 50; transition: transform 0.1s;
+        }
+        #micio { font-size: 100px; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2)); }
+        #aura {
+            position: absolute; width: 200px; height: 200px;
+            border-radius: 50%; filter: blur(50px); opacity: 0.4;
+            z-index: -1; top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
 
-        /* UI Overlay */
-        #ui-layer {
-            position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; z-index: 100;
-            pointer-events: none;
-        }
-        .stat-card {
-            background: rgba(0,0,0,0.7); border: 2px solid var(--neon-blue);
-            padding: 15px; border-radius: 5px; box-shadow: 0 0 15px var(--neon-blue);
-        }
+        canvas { position: absolute; inset: 0; z-index: 10; }
 
-        /* Micio & Aura */
-        #micio-anchor { position: relative; z-index: 50; transform-style: preserve-3d; transition: transform 0.2s; }
-        #micio-sprite { font-size: 100px; filter: drop-shadow(0 0 20px white); cursor: pointer; }
-        .aura {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 300px; height: 300px; border-radius: 50%; filter: blur(60px); opacity: 0.4;
-        }
-
-        /* 3D Canvas */
-        #chartCanvas { position: absolute; inset: 0; z-index: 10; }
-
-        #start-screen {
+        #overlay {
             position: fixed; inset: 0; background: var(--bg); z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .btn-glitch {
-            background: transparent; border: 2px solid var(--neon-green); color: var(--neon-green);
-            padding: 20px 50px; font-size: 1.5em; cursor: pointer; font-family: 'Orbitron';
+        .btn {
+            background: var(--neon-green); color: black; border: none;
+            padding: 15px 40px; font-weight: bold; font-size: 1.2rem; cursor: pointer;
+            border-radius: 50px; box-shadow: 0 0 20px var(--neon-green);
         }
     </style>
 </head>
 <body>
 
-    <div id="start-screen">
-        <h1 style="color:var(--neon-blue); letter-spacing:10px;">3D MICIO</h1>
-        <button class="btn-glitch" onclick="init()">ENTER MATRIX</button>
+    <div id="overlay">
+        <h1 style="letter-spacing: 5px;">🐱 ilMicioTrader</h1>
+        <p style="color: #666; margin-bottom: 30px;">POVEZOVANJE NA BITGET WS...</p>
+        <button class="btn" onclick="start()">ZAČNI TRGOVATI</button>
     </div>
 
-    <div id="ui-layer">
-        <div class="stat-card">
-            <div id="rank-text" style="font-size: 0.8em; color: var(--neon-blue);">RANK: CHUNKY</div>
-            <div id="xp-val" style="font-size: 1.5em;">XP 0</div>
+    <div id="top-bar">
+        <div class="stat-group">
+            <div id="price-label">BTC: ČAKAM...</div>
+            <div id="xp-label">XP: 0 | RANK: CHUNKY</div>
         </div>
-        <div class="stat-card" style="text-align: right; border-color: var(--neon-gold);">
-            <div id="price-val" style="font-size: 0.8em;">BTC/USDT</div>
-            <div id="pnl-val" style="font-size: 1.5em; font-weight: 900;">0.00%</div>
+        <div class="stat-group" style="text-align: right;">
+            <div id="pnl-label">0.00%</div>
+            <div style="font-size: 0.7rem; color: #888;">HOLD = LONG | RELEASE = SHORT</div>
         </div>
     </div>
 
-    <div id="scene-container">
-        <div id="aura" class="aura" style="background: var(--neon-blue);"></div>
-        <div id="micio-anchor">
-            <div id="micio-sprite">🐱</div>
+    <div id="game-area">
+        <div id="aura" style="background: var(--neon-blue);"></div>
+        <div id="micio-container">
+            <div id="micio">🐱</div>
         </div>
-        <canvas id="chartCanvas"></canvas>
+        <canvas id="mainCanvas"></canvas>
     </div>
 
     <script>
-        let state = { xp: 0, price: 0, entry: 0, pos: 'SHORT', history: [], pnl: 0 };
-        const canvas = document.getElementById('chartCanvas');
+        let xp = 0, price = 0, entry = 0, pos = 'SHORT', history = [], pnl = 0;
+        const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
-        const anchor = document.getElementById('micio-anchor');
 
-        function init() {
-            document.getElementById('start-screen').style.display = 'none';
-            window.addEventListener('resize', resize);
+        function start() {
+            document.getElementById('overlay').style.display = 'none';
             resize();
             connect();
-            animate();
+            loop();
         }
 
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
 
         function connect() {
             const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-            ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"instType":"sp","channel":"ticker","instId":"BTCUSDT"}]}));
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    "op": "subscribe",
+                    "args": [{"instType": "sp", "channel": "ticker", "instId": "BTCUSDT"}]
+                }));
+            };
             ws.onmessage = (e) => {
                 const d = JSON.parse(e.data);
                 if (d.data && d.data[0]) {
-                    state.price = parseFloat(d.data[0].lastPr);
-                    state.history.push(state.price);
-                    if(state.history.length > 50) state.history.shift();
-                    if(state.entry === 0) state.entry = state.price;
-                    update();
+                    price = parseFloat(d.data[0].lastPr);
+                    history.push(price);
+                    if(history.length > 60) history.shift();
+                    if(entry === 0) entry = price;
+                    updateData();
                 }
             };
+            ws.onclose = () => setTimeout(connect, 1000);
         }
 
-        function update() {
-            let diff = state.pos === 'LONG' ? (state.price - state.entry) : (state.entry - state.price);
-            state.pnl = (diff / state.entry) * 100 * 50; 
-            if(state.pnl > 0) state.xp += 0.5;
-            if(state.pnl <= -100) { state.xp = Math.max(0, state.xp - 50); state.entry = state.price; }
+        function updateData() {
+            let diff = pos === 'LONG' ? (price - entry) : (entry - price);
+            pnl = (diff / entry) * 100 * 40; // 40x leverage
+            
+            if(pnl > 0) xp += 0.2;
+            if(pnl <= -100) { xp = Math.max(0, xp - 50); entry = price; }
 
-            document.getElementById('pnl-val').innerText = `${state.pnl.toFixed(2)}%`;
-            document.getElementById('pnl-val').style.color = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-red)';
-            document.getElementById('xp-val').innerText = `XP ${Math.floor(state.xp)}`;
+            // UI Update
+            document.getElementById('price-label').innerText = `BTC: $${price.toLocaleString()}`;
+            const pEl = document.getElementById('pnl-label');
+            pEl.innerText = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%`;
+            pEl.style.color = pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-red)';
+            document.getElementById('xp-label').innerText = `XP: ${Math.floor(xp)} | RANK: ${xp > 500 ? 'GIGA' : (xp > 150 ? 'ULTRA' : 'CHUNKY')}`;
             
-            // 3D Tilt based on PnL
-            anchor.style.transform = `rotateY(${state.pnl/2}deg) rotateX(${-state.pnl/4}deg) scale(${1 + state.pnl/500})`;
-            
-            // Rank evolution
-            if(state.xp > 500) { 
-                document.getElementById('micio-sprite').innerText = "👑"; 
-                document.getElementById('rank-text').innerText = "RANK: GIGA GOD";
-                document.getElementById('aura').style.background = "var(--neon-gold)";
+            // Evolution
+            if(xp > 150) document.getElementById('micio').innerText = "🕶️";
+            if(xp > 500) {
+                document.getElementById('micio').innerText = "👑";
+                document.getElementById('aura').style.background = "var(--gold)";
             }
+
+            // 3D Reaction
+            document.getElementById('micio-container').style.transform = `rotateY(${pnl/2}deg) scale(${1 + pnl/500})`;
         }
 
-        window.onmousedown = () => { state.pos = 'LONG'; state.entry = state.price; };
-        window.onmouseup = () => { state.pos = 'SHORT'; state.entry = state.price; };
-        window.ontouchstart = (e) => { e.preventDefault(); state.pos = 'LONG'; state.entry = state.price; };
-        window.ontouchend = (e) => { e.preventDefault(); state.pos = 'SHORT'; state.entry = state.price; };
+        // Input Controls
+        const handleDown = () => { pos = 'LONG'; entry = price; };
+        const handleUp = () => { pos = 'SHORT'; entry = price; };
 
-        function animate() {
+        window.onmousedown = handleDown; window.onmouseup = handleUp;
+        window.ontouchstart = (e) => { e.preventDefault(); handleDown(); };
+        window.ontouchend = (e) => { e.preventDefault(); handleUp(); };
+
+        function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw 3D-like Grid (Perspective Lines)
-            ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)';
-            ctx.lineWidth = 1;
-            for(let i = 0; i < 10; i++) {
+            if(history.length > 2) {
+                const min = Math.min(...history);
+                const max = Math.max(...history);
+                const range = max - min || 1;
+
+                // 3D Ribbon / Graf s polnilom
                 ctx.beginPath();
-                ctx.moveTo(canvas.width/2, canvas.height/2);
-                ctx.lineTo(Math.random()*canvas.width, canvas.height);
-                ctx.stroke();
-            }
-
-            // Draw 3D Price Ribbon
-            if(state.history.length > 2) {
-                let min = Math.min(...state.history);
-                let max = Math.max(...state.history);
-                let range = max - min || 1;
-
-                ctx.lineWidth = 5;
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-blue)';
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-blue)';
                 
-                for(let i = 1; i < state.history.length; i++) {
-                    let x1 = (i-1) * (canvas.width / 50);
-                    let x2 = i * (canvas.width / 50);
-                    
-                    // Perspective calculation (y moves towards center as it goes to the left/past)
-                    let y1 = canvas.height/2 + (state.history[i-1] - (min + range/2)) / range * (canvas.height * 0.8) * (i/50);
-                    let y2 = canvas.height/2 + (state.history[i] - (min + range/2)) / range * (canvas.height * 0.8) * ((i+1)/50);
+                // Ustvarimo gradient pod grafom za "3D volumen"
+                const grad = ctx.createLinearGradient(0, canvas.height/2, 0, canvas.height);
+                grad.addColorStop(0, pnl >= 0 ? 'rgba(57, 255, 20, 0.2)' : 'rgba(0, 212, 255, 0.2)');
+                grad.addColorStop(1, 'transparent');
 
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(0, 243, 255, ${i/50})`;
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                    ctx.stroke();
-                }
+                history.forEach((p, i) => {
+                    const x = i * (canvas.width / (history.length - 1));
+                    const y = canvas.height - ((p - min) / range * (canvas.height * 0.5) + (canvas.height * 0.25));
+                    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                });
+                
+                ctx.stroke();
+
+                // Zapremo pot za polnilo
+                ctx.lineTo(canvas.width, canvas.height);
+                ctx.lineTo(0, canvas.height);
+                ctx.fillStyle = grad;
+                ctx.fill();
             }
-            ctx.shadowBlur = 0;
-            requestAnimationFrame(animate);
+            
+            requestAnimationFrame(loop);
         }
+        window.onresize = resize;
     </script>
 </body>
 </html>
