@@ -1,169 +1,202 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Data Fix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Trader Cat - Lite</title>
     <style>
-        :root {
-            --bg: #0d1117;
-            --green: #2ebd67;
-            --red: #f6465d;
-            --blue: #58a6ff;
-            --gold: #ffcf40;
+        body {
+            margin: 0;
+            background: #0a0b0d;
+            color: #e2e8f0;
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow: hidden; height: 100vh; touch-action: none; }
-        
-        /* UI Layer */
-        #ui {
-            position: absolute; top: 0; width: 100%; padding: 20px;
-            display: flex; justify-content: space-between; z-index: 100; box-sizing: border-box;
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
         }
-        .panel { background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; border: 1px solid #30363d; }
-        
-        /* 3D Scene */
-        #stage {
-            position: relative; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            perspective: 800px;
+
+        .stat {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
         }
-        #micio-box { transition: transform 0.1s; z-index: 50; }
-        #micio { font-size: 100px; filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); }
-        
-        canvas { position: absolute; inset: 0; z-index: 10; }
-        
-        #btn-start {
-            position: fixed; inset: 0; background: var(--bg); z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+
+        .price { color: #00ff88; font-family: monospace; }
+        .leverage { color: #ff3366; }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            cursor: pointer;
         }
-        .start-btn {
-            background: var(--green); color: white; border: none; padding: 20px 40px;
-            font-size: 1.5rem; font-weight: bold; border-radius: 50px; cursor: pointer;
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            color: #64748b;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
 
-    <div id="btn-start">
-        <h1 style="font-size: 3rem; margin-bottom: 20px;">🐱 ilMicioTrader</h1>
-        <button class="start-btn" onclick="init()">START SYSTEM</button>
+    <div id="ui-layer">
+        <div class="stat">Price: <span id="price-val" class="price">0.0000</span></div>
+        <div class="stat">Lev: <span class="leverage">20x</span></div>
+        <div id="status" class="stat" style="color: #64748b;">HOLDING...</div>
     </div>
 
-    <div id="ui">
-        <div class="panel">
-            <div id="btc-price" style="color: var(--blue); font-weight: bold; font-size: 1.2rem;">BTC: --</div>
-            <div id="xp-display" style="font-size: 0.8rem;">XP: 0 | RANK: CHUNKY</div>
-        </div>
-        <div class="panel" style="text-align: right;">
-            <div id="pnl-display" style="font-size: 1.8rem; font-weight: 900;">0.00%</div>
-            <div style="font-size: 0.7rem; color: #888;">HOLD = LONG | RELEASE = SHORT</div>
-        </div>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div id="stage">
-        <div id="micio-box">
-            <div id="micio">🐱</div>
-        </div>
-        <canvas id="cvs"></canvas>
-    </div>
+    <div class="controls-hint">Klikni in drži za LONG | Spusti za SHORT</div>
 
     <script>
-        let xp = 0, price = 0, entry = 0, pos = 'SHORT', history = [], pnl = 0;
-        const cvs = document.getElementById('cvs');
-        const ctx = cvs.getContext('2d');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const priceEl = document.getElementById('price-val');
+        const statusEl = document.getElementById('status');
+
+        let width, height;
+        let points = [];
+        let catY = 0;
+        let targetCatY = 0;
+        let isLong = false;
+        let currentPrice = 42000;
+        let scrollX = 0;
+
+        // Nastavitve
+        const config = {
+            pointsCount: 50,
+            pointSpacing: 40,
+            smoothness: 0.15,
+            neonColor: '#00ff88',
+            catColor: '#ffffff'
+        };
 
         function init() {
-            document.getElementById('btn-start').style.display = 'none';
             resize();
-            connect();
-            render();
+            // Generiranje začetnega grafa
+            for (let i = 0; i < config.pointsCount; i++) {
+                points.push(height / 2 + (Math.random() - 0.5) * 100);
+            }
+            catY = points[10];
+            animate();
         }
 
         function resize() {
-            cvs.width = window.innerWidth;
-            cvs.height = window.innerHeight;
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
         }
 
-        function connect() {
-            // BACK TO YOUR ORIGINAL WORKING WS FORMAT
-            const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-            ws.onopen = () => {
-                ws.send(JSON.stringify({
-                    "op": "subscribe",
-                    "args": [{"instType": "sp", "channel": "ticker", "instId": "BTCUSDT"}]
-                }));
-            };
-            ws.onmessage = (e) => {
-                const d = JSON.parse(e.data);
-                if (d.data && d.data[0]) {
-                    price = parseFloat(d.data[0].lastPr);
-                    history.push(price);
-                    if(history.length > 100) history.shift();
-                    if(entry === 0) entry = price;
-                    
-                    // Logic calculation
-                    let diff = pos === 'LONG' ? (price - entry) : (entry - price);
-                    pnl = (diff / entry) * 100 * 30; // 30x Leverage
-                    if(pnl > 0) xp += 0.2;
-                    if(pnl <= -100) { xp = Math.max(0, xp - 30); entry = price; }
-
-                    updateUI();
-                }
-            };
-            ws.onclose = () => setTimeout(connect, 1000);
-        }
-
-        function updateUI() {
-            document.getElementById('btc-price').innerText = `BTC: $${price.toLocaleString()}`;
-            const pEl = document.getElementById('pnl-display');
-            pEl.innerText = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%`;
-            pEl.style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+        // Glavna logika premikanja
+        function update() {
+            // Generiranje nove cene (simuliran graf)
+            const lastPoint = points[points.length - 1];
+            const volatility = 5;
+            const nextPoint = lastPoint + (Math.random() - 0.5) * volatility;
             
-            const rank = xp > 500 ? 'GIGA' : (xp > 150 ? 'ULTRA' : 'CHUNKY');
-            document.getElementById('xp-display').innerText = `XP: ${Math.floor(xp)} | RANK: ${rank}`;
-            
-            if(xp > 150) document.getElementById('micio').innerText = "🕶️";
-            if(xp > 500) document.getElementById('micio').innerText = "👑";
+            points.push(nextPoint);
+            if (points.length > config.pointsCount) points.shift();
 
-            // 3D Rotation of Micio
-            document.getElementById('micio-box').style.transform = `rotateY(${pnl/2}deg) rotateX(${-pnl/5}deg)`;
+            // Simulacija cene v UI
+            currentPrice += (nextPoint - lastPoint) * 10;
+            priceEl.innerText = currentPrice.toFixed(2);
+
+            // Mačka sledi grafu z zamikom ali switcha med robovi
+            const playerXIndex = 10; // Mačka je fiksirana na 10. točki grafa
+            const baselineY = points[playerXIndex];
+            
+            // Če držimo Long, gre mačka nad graf, če ne, pod graf
+            const offset = isLong ? -30 : 30;
+            targetCatY = baselineY + offset;
+            
+            // Gladko premikanje (Lerp)
+            catY += (targetCatY - catY) * config.smoothness;
         }
 
-        window.onmousedown = () => { pos = 'LONG'; entry = price; };
-        window.onmouseup = () => { pos = 'SHORT'; entry = price; };
-        window.ontouchstart = (e) => { e.preventDefault(); pos = 'LONG'; entry = price; };
-        window.ontouchend = (e) => { e.preventDefault(); pos = 'SHORT'; entry = price; };
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
 
-        function render() {
-            ctx.clearRect(0, 0, cvs.width, cvs.height);
-            if(history.length > 2) {
-                const min = Math.min(...history);
-                const max = Math.max(...history);
-                const range = max - min || 1;
-
+            // 1. Izris mreže (Grid)
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for(let i = 0; i < width; i += 50) {
                 ctx.beginPath();
-                ctx.lineWidth = 5;
-                ctx.strokeStyle = pnl >= 0 ? 'var(--green)' : 'var(--blue)';
-                
-                // Draw line
-                history.forEach((p, i) => {
-                    const x = i * (cvs.width / (history.length - 1));
-                    const y = cvs.height - ((p - min) / range * (cvs.height * 0.6) + (cvs.height * 0.2));
-                    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                });
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
                 ctx.stroke();
-
-                // Fill area under graph for visual depth
-                ctx.lineTo(cvs.width, cvs.height);
-                ctx.lineTo(0, cvs.height);
-                ctx.fillStyle = pnl >= 0 ? 'rgba(46,189,103,0.1)' : 'rgba(88,166,255,0.1)';
-                ctx.fill();
             }
-            requestAnimationFrame(render);
+
+            // 2. Izris grafa (Glavna linija)
+            ctx.beginPath();
+            ctx.strokeStyle = isLong ? '#00ff88' : '#ff3366';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = ctx.strokeStyle;
+            
+            for (let i = 0; i < points.length; i++) {
+                const x = i * config.pointSpacing;
+                const y = points[i];
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 3. Izris mačke (Igralec)
+            const playerX = 10 * config.pointSpacing;
+            
+            // Telo mačke (poenostavljeno v neon krog za "pro" izgled)
+            ctx.fillStyle = config.catColor;
+            ctx.beginPath();
+            ctx.arc(playerX, catY, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Aura okoli mačke
+            ctx.strokeStyle = config.catColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(playerX, catY, 15 + Math.sin(Date.now()/200)*3, 0, Math.PI * 2);
+            ctx.stroke();
         }
-        window.onresize = resize;
+
+        function animate() {
+            update();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        // Kontrole
+        window.addEventListener('mousedown', () => { 
+            isLong = true; 
+            statusEl.innerText = 'LONG POSITION';
+            statusEl.style.color = '#00ff88';
+        });
+        window.addEventListener('mouseup', () => { 
+            isLong = false; 
+            statusEl.innerText = 'SHORT POSITION';
+            statusEl.style.color = '#ff3366';
+        });
+        window.addEventListener('touchstart', (e) => { e.preventDefault(); isLong = true; });
+        window.addEventListener('touchend', () => { isLong = false; });
+        window.addEventListener('resize', resize);
+
+        init();
     </script>
-</body>
-</html>
 </body>
 </html>
