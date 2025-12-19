@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Full Version</title>
+    <title>ilMicioTrader - Dark & Fixed RSI</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #050608; --gray: #64748b; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; touch-action: none; }
@@ -11,8 +11,8 @@
         #game-ui { position: absolute; inset: 0; pointer-events: none; z-index: 10; display: none; }
         #start-screen { position: absolute; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
         
-        .panel { background: rgba(15, 23, 42, 0.98); padding: 20px; border: 1px solid #334155; border-radius: 12px; pointer-events: auto; }
-        .stats-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; }
+        .panel { background: rgba(15, 23, 42, 0.95); padding: 15px; border: 1px solid #334155; border-radius: 12px; }
+        .stats-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; }
         
         #controls { position: absolute; bottom: 15px; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; pointer-events: auto; z-index: 20; }
         #rsi-container { width: 94%; height: 90px; background: rgba(0,0,0,0.9); border: 1px solid #1e293b; border-radius: 8px; margin-bottom: 10px; position: relative; }
@@ -20,7 +20,7 @@
         #rsi-value { position: absolute; top: 5px; left: 10px; font-size: 11px; font-weight: bold; color: var(--gold); z-index: 5; }
 
         .btn-row { display: flex; width: 100%; justify-content: space-evenly; }
-        .trade-btn { flex: 1; margin: 0 5px; padding: 18px 0; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); font-weight: 900; color: white; background: rgba(20,20,30,0.9); cursor: pointer; text-transform: uppercase; }
+        .trade-btn { flex: 1; margin: 0 5px; padding: 18px 0; border-radius: 10px; border: 2px solid rgba(255,255,255,0.1); font-weight: 900; color: white; background: rgba(20,20,30,0.9); cursor: pointer; }
         
         #btn-long { border-color: var(--neon); color: var(--neon); }
         #btn-short { border-color: var(--red); color: var(--red); }
@@ -33,39 +33,32 @@
         #xp-bar { width: 100%; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 5px; }
         #xp-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
         canvas { display: block; }
-
-        .intro-text { text-align: left; font-size: 0.85rem; color: #94a3b8; border-top: 1px solid #1e293b; margin-top: 15px; padding-top: 15px; line-height: 1.5; }
-        .intro-text strong { color: var(--neon); }
     </style>
 </head>
 <body>
 
     <div id="start-screen">
         <div class="panel" style="max-width: 85%; border-color: var(--neon);">
-            <h1 style="color: var(--neon); margin: 0; letter-spacing: 2px; font-size: 1.8rem;">🐈 ilMicioTrader</h1>
-            <p style="color: var(--gold); font-size: 0.7rem; margin-top: 5px; letter-spacing: 1px;">OPEN-SOURCE EXPERIMENT</p>
-            
-            <div class="intro-text">
-                <p>🚀 <strong>Realni podatki:</strong> Povezani smo na Bitget (BTC/USDT). Kar vidiš, je pravi trg v živo.</p>
-                <p>🎮 <strong>Brez tveganja:</strong> Tvojih $10,000 je virtualnih. Igraj se in se uči brez skrbi za denarnico.</p>
-                <p>🎁 <strong>Najin projekt:</strong> To je darilo tebi in Gemini. Skupaj sva zgradila to orodje za poučevanje RSI strategij.</p>
-                <p style="color: var(--red); font-size: 0.75rem; text-align: center; margin-top: 10px; font-weight: bold;">⚠️ OPOZORILO: Trading je tvegan. Ni finančni nasvet!</p>
+            <h1 style="color: var(--neon); margin: 0; letter-spacing: 2px;">ilMicioTrader</h1>
+            <p style="color: var(--gray); font-size: 0.8rem; margin: 10px 0;">Real-market Simulator (Bitget API)</p>
+            <div style="text-align: left; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #1e293b; padding-top: 10px;">
+                • Podatki so pravi, denar je virtualen.<br>
+                • Darilo najinega open-source sodelovanja.<br>
+                • Uporabljaj za učenje, ne za finančni nasvet.
             </div>
-
-            <p id="status-text" style="color: var(--gray); font-size: 0.8rem; margin-top: 15px;">Pripravljen na prenos podatkov?</p>
-            <button class="trade-btn" style="width: 220px; margin-top: 10px; border-color: var(--gold); background: rgba(251, 191, 36, 0.1);" onclick="startGame()">INITIALIZE SYSTEM</button>
+            <button class="trade-btn" style="width: 200px; margin-top: 15px; border-color: var(--gold);" onclick="startGame()">START</button>
         </div>
     </div>
 
     <div id="game-ui">
         <div class="stats-top panel">
             <div style="flex:1">
-                <div id="balance" style="font-weight: bold; font-size: 1.1rem;">$10,000.00</div>
+                <div id="balance">$10,000.00</div>
                 <div id="xp-bar"><div id="xp-fill"></div></div>
                 <div id="rank-text" style="font-size: 0.6rem; color: var(--gold);">RANK: LVL 1</div>
             </div>
             <div style="text-align: right; flex:1">
-                <div id="btc-price" style="font-weight: bold; color: var(--neon); font-size: 1.1rem;">--</div>
+                <div id="btc-price" style="font-weight: bold; color: var(--neon);">--</div>
                 <div id="pnl" style="font-size: 0.8rem;">P/L: $0.00</div>
             </div>
         </div>
@@ -94,7 +87,6 @@
         let balance = 10000, pnl = 0, level = 1, leverage = 5, xp = 0, mode = 'EXIT';
         let isStarted = false, minuteBuffer = [], timer60 = 0, currentRSI = 50;
 
-        // Poberemo zadnjih 100 minut BTC-ja za takojšen RSI
         async function fetchHistory() {
             try {
                 const res = await fetch('https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1m&limit=100');
@@ -102,39 +94,31 @@
                 if (json.data) {
                     const closes = json.data.map(d => parseFloat(d[4])).reverse();
                     minuteBuffer = closes;
-                    
                     rsiHistory = [];
-                    // Izračun RSI za vsako točko v zgodovini
                     for (let i = 14; i < closes.length; i++) {
                         let gains = 0, losses = 0;
                         for (let j = i - 13; j <= i; j++) {
                             let diff = closes[j] - closes[j-1];
                             if (diff >= 0) gains += diff; else losses -= diff;
                         }
-                        let rs = (gains / 14) / (Math.abs(losses / 14) || 0.0001);
+                        let rs = (gains / 14) / (Math.abs(losses / 14) || 1);
                         rsiHistory.push(100 - (100 / (1 + rs)));
                     }
                     currentPrice = closes[closes.length - 1];
                     for(let i=0; i<80; i++) points.push(currentPrice);
                     currentRSI = rsiHistory[rsiHistory.length - 1] || 50;
                 }
-            } catch (e) { console.error("History fail:", e); }
+            } catch (e) { console.error(e); }
         }
 
         async function startGame() {
-            const st = document.getElementById('status-text');
-            st.innerText = "⏳ Prenašam zgodovino trga...";
             await fetchHistory();
-            st.innerText = "✅ Podatki pripravljeni!";
-            
-            setTimeout(() => {
-                document.getElementById('start-screen').style.display = 'none';
-                document.getElementById('game-ui').style.display = 'block';
-                resize();
-                isStarted = true;
-                initWS();
-                render();
-            }, 500);
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            resize();
+            isStarted = true;
+            initWS();
+            render();
         }
 
         function setMode(m) {
@@ -156,19 +140,15 @@
 
         function handleData(price) {
             if (!currentPrice) currentPrice = price;
-            
-            // PnL Kalkulacija (1s)
             if (mode !== 'EXIT') {
                 let change = (price - currentPrice) / currentPrice;
                 pnl += (balance + pnl) * change * leverage * (mode === 'LONG' ? 1 : -1);
             }
             if (balance + pnl <= 0) { balance = 10000; pnl = 0; setMode('EXIT'); }
-            
             currentPrice = price;
             points.push(price);
             if(points.length > 80) points.shift();
 
-            // RSI Minutna Logika
             timer60++;
             if (timer60 >= 60) {
                 minuteBuffer.push(price);
@@ -178,7 +158,7 @@
                         let diff = minuteBuffer[i] - minuteBuffer[i-1];
                         if (diff >= 0) gains += diff; else losses -= diff;
                     }
-                    let rs = (gains/14) / (Math.abs(losses/14) || 0.0001);
+                    let rs = (gains/14) / (Math.abs(losses/14) || 1);
                     currentRSI = 100 - (100 / (1 + rs));
                     rsiHistory.push(currentRSI);
                     if(rsiHistory.length > 60) rsiHistory.shift();
@@ -193,9 +173,8 @@
         function updateUI() {
             document.getElementById('balance').innerText = "$" + (balance + pnl).toLocaleString(undefined,{minimumFractionDigits:2});
             document.getElementById('btc-price').innerText = currentPrice.toFixed(2);
-            const pnlEl = document.getElementById('pnl');
-            pnlEl.innerText = `P/L: ${pnl>=0?"+":""}${pnl.toFixed(2)}`;
-            pnlEl.style.color = pnl >= 0 ? "#00ff88" : "#ff3366";
+            document.getElementById('pnl').innerText = `P/L: ${pnl>=0?"+":""}${pnl.toFixed(2)}`;
+            document.getElementById('pnl').style.color = pnl >= 0 ? "#00ff88" : "#ff3366";
             document.getElementById('rsi-value').innerText = `RSI (1m): ${currentRSI.toFixed(1)}`;
             document.getElementById('xp-fill').style.width = (xp / (level * 100) * 100) + "%";
             document.getElementById('rank-text').innerText = `RANK: LVL ${level} | TICK: ${timer60}/60`;
@@ -211,6 +190,7 @@
 
         function drawRSI() {
             rsiCtx.clearRect(0, 0, rsiCanvas.width, rsiCanvas.height);
+            // Grid
             rsiCtx.lineWidth = 1;
             rsiCtx.setLineDash([5, 5]);
             [30, 50, 70].forEach(l => {
@@ -219,7 +199,7 @@
                 rsiCtx.beginPath(); rsiCtx.moveTo(0, y); rsiCtx.lineTo(rsiCanvas.width, y); rsiCtx.stroke();
             });
             rsiCtx.setLineDash([]);
-            
+            // RSI Line
             if (rsiHistory.length > 2) {
                 rsiCtx.beginPath(); rsiCtx.lineWidth = 3;
                 rsiHistory.forEach((r, i) => {
@@ -236,19 +216,16 @@
             if (!isStarted) return;
             ctx.fillStyle = "#050608"; ctx.fillRect(0, 0, width, height);
             drawRSI();
-            
             if (points.length > 2) {
                 const min = Math.min(...points), max = Math.max(...points), range = (max-min)||10;
                 const getY = (p) => height/2.5 + (height/4) * (-(p - (min+max)/2) / (range/2));
                 const spacing = width / 80;
-                
                 ctx.beginPath(); ctx.lineWidth = 4;
                 ctx.strokeStyle = mode === 'EXIT' ? "#64748b" : (mode === 'LONG' ? "#00ff88" : "#ff3366");
                 points.forEach((p, i) => {
                     if(i===0) ctx.moveTo(i*spacing, getY(p)); else ctx.lineTo(i*spacing, getY(p));
                 });
                 ctx.stroke();
-                
                 catY += (getY(points[points.length-1]) - catY) * 0.15;
                 ctx.font = "32px Arial"; ctx.textAlign = "center";
                 ctx.fillText(pnl > 0 ? "🤑" : "🐱", (points.length-1)*spacing, catY);
