@@ -3,218 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Giga Edition</title>
+    <title>ilMicioTrader - Ultimate Edition</title>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --micio-gold: #ffd700;
-            --micio-blue: #00d4ff;
-            --micio-fire: #ff4500;
+            --bg: #0b0e11;
+            --primary: #58a6ff;
+            --gold: #ffd700;
+            --blue: #00d4ff;
+            --fire: #ff4500;
+            --green: #2ebd67;
+            --red: #f6465d;
         }
         body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: white;
-            font-family: sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            user-select: none;
-            touch-action: none;
+            margin: 0; padding: 0; background: var(--bg);
+            color: white; font-family: 'Inter', sans-serif;
+            overflow: hidden; height: 100vh; display: flex;
+            flex-direction: column; align-items: center;
+            user-select: none; touch-action: none;
         }
-        #ui-layer {
-            position: absolute;
-            top: 10px; width: 95%;
-            display: flex; justify-content: space-between;
-            z-index: 10;
+        #ui-header {
+            position: absolute; top: 15px; width: 92%;
+            display: flex; justify-content: space-between; z-index: 20;
         }
-        .stat-box {
-            background: rgba(22, 27, 34, 0.9);
-            padding: 10px; border-radius: 10px;
-            border: 1px solid #30363d;
-            min-width: 120px;
+        .glass-box {
+            background: rgba(24, 29, 37, 0.85);
+            padding: 12px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px); min-width: 140px;
         }
-        #tutorial {
-            position: absolute; bottom: 20px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 15px; border-radius: 15px;
-            text-align: center; font-size: 0.8em;
-            border: 1px solid #58a6ff;
-            max-width: 85%; z-index: 5;
-            pointer-events: none;
-        }
-        #game-container {
+        #micio-stage {
             position: relative; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
         }
         #micio-sprite {
-            font-size: 80px; transition: transform 0.1s;
-            z-index: 2; cursor: pointer;
+            font-size: 110px; z-index: 5; transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
         }
-        .aura {
-            position: absolute; width: 130px; height: 130px;
-            border-radius: 50%; z-index: 1; opacity: 0.4;
-            filter: blur(30px); animation: pulse 2s infinite;
+        .aura-glow {
+            position: absolute; width: 200px; height: 200px;
+            border-radius: 50%; z-index: 1; filter: blur(40px);
+            opacity: 0.5; animation: breathe 3s infinite ease-in-out;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.3; }
-            50% { transform: scale(1.5); opacity: 0.6; }
-            100% { transform: scale(1); opacity: 0.3; }
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.3); opacity: 0.7; } }
+        canvas { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+        #instructions {
+            position: absolute; bottom: 30px; z-index: 10;
+            background: rgba(0,0,0,0.8); padding: 15px 25px;
+            border-radius: 50px; border: 1px solid var(--primary);
+            font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px;
+            animation: bounce 2s infinite;
         }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #start-screen {
-            position: absolute; inset: 0; background: var(--bg-color);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100;
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        #flash-overlay {
+            position: absolute; inset: 0; pointer-events: none;
+            z-index: 100; opacity: 0; transition: opacity 0.5s;
         }
-        .btn {
-            background: #238636; color: white; border: none;
-            padding: 15px 40px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.2em;
-        }
+        #direction-hint { font-weight: bold; font-size: 1.2em; }
     </style>
 </head>
 <body>
-    <div id="start-screen">
-        <h1 style="font-size: 2.5em; margin-bottom: 10px;">🐱 ilMicioTrader</h1>
-        <p style="color: #8b949e; margin-bottom: 30px;">Real-time BTC Futures Simulator</p>
-        <button class="btn" onclick="startGame()">CONNECT TO EXCHANGE</button>
+    <div id="flash-overlay"></div>
+    <div id="start-screen" style="position:fixed; inset:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <div style="font-size: 80px; margin-bottom: 20px;">🐱</div>
+        <h1 style="margin:0; font-size: 2.5em;">ilMicioTrader</h1>
+        <p style="color:var(--primary); margin-bottom:40px;">THE ULTIMATE CRYPTO GAME</p>
+        <button onclick="launch()" style="background:var(--green); color:white; border:none; padding:18px 50px; border-radius:30px; font-weight:bold; font-size:1.1em; cursor:pointer; box-shadow:0 10px 20px rgba(46,189,103,0.3);">START TRADING</button>
     </div>
 
-    <div id="ui-layer">
-        <div class="stat-box">
-            <div id="rank-display" style="color:var(--micio-gold); font-weight: bold;">Rank: CHUNKY 🐱</div>
-            <div id="xp-display">XP: 0</div>
+    <div id="ui-header">
+        <div class="glass-box">
+            <div id="rank-name" style="color:var(--gold); font-weight:800; font-size:0.8em;">RANK: CHUNKY</div>
+            <div id="xp-val" style="font-size:1.3em; font-weight:bold;">XP: 0</div>
         </div>
-        <div class="stat-box" style="text-align: right;">
-            <div id="price-display" style="color: #58a6ff; font-weight: bold;">BTC: Fetching...</div>
-            <div id="pnl-display">PnL: 0%</div>
+        <div class="glass-box" style="text-align:right;">
+            <div id="price-val" style="color:var(--primary); font-weight:bold; font-size:1.1em;">BTC: $--</div>
+            <div id="pnl-val" style="font-size:1.3em; font-weight:900;">0.00%</div>
         </div>
     </div>
 
-    <div id="game-container">
-        <div id="micio-aura" class="aura" style="background: var(--micio-gold);"></div>
+    <div id="micio-stage">
+        <div id="micio-aura" class="aura-glow" style="background:var(--gold);"></div>
         <div id="micio-sprite">🐱</div>
-        <canvas id="chartCanvas"></canvas>
+        <canvas id="chart"></canvas>
     </div>
 
-    <div id="tutorial">
-        <b>HOW TO PLAY:</b><br>
-        PUSH & HOLD = <b>LONG</b> | RELEASE = <b>SHORT</b><br>
-        Gain XP by following the trend. Watch out for Liquidation!
+    <div id="instructions">
+        <span id="pos-label">SHORT</span> | <span id="direction-hint">HOLD FOR LONG 🚀</span>
     </div>
 
     <script>
-        let xp = 0; let currentPrice = 0; let entryPrice = 0;
-        let position = 'SHORT'; let pnl = 0; let priceHistory = [];
-        const canvas = document.getElementById('chartCanvas');
-        const ctx = canvas.getContext('2d');
+        let xp = 0, currentPrice = 0, entryPrice = 0, position = 'SHORT', priceHistory = [], pnl = 0;
+        const sprite = document.getElementById('micio-sprite'), aura = document.getElementById('micio-aura');
+        const canvas = document.getElementById('chart'), ctx = canvas.getContext('2d');
 
-        function startGame() {
+        function launch() {
             document.getElementById('start-screen').style.display = 'none';
-            initWS();
+            initConnection();
             resize();
-            draw();
+            loop();
         }
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
-        function initWS() {
-            // Corrected Bitget V2 WS URL and subscription format
+        function initConnection() {
             const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-            
-            ws.onopen = () => {
-                console.log("Connected to Bitget");
-                ws.send(JSON.stringify({
-                    "op": "subscribe",
-                    "args": [{
-                        "instType": "SPOT",
-                        "channel": "ticker",
-                        "instId": "BTCUSDT"
-                    }]
-                }));
-            };
-
+            ws.onopen = () => ws.send(JSON.stringify({"op": "subscribe","args": [{"instType": "sp","channel": "ticker","instId": "BTCUSDT"}]}));
             ws.onmessage = (e) => {
                 const d = JSON.parse(e.data);
                 if (d.data && d.data[0]) {
                     currentPrice = parseFloat(d.data[0].lastPr);
                     priceHistory.push(currentPrice);
-                    if(priceHistory.length > 100) priceHistory.shift();
-                    
-                    document.getElementById('price-display').innerText = `BTC: $${currentPrice.toLocaleString()}`;
-                    
-                    if (entryPrice === 0) entryPrice = currentPrice;
-
-                    // PnL & XP logic
-                    let diff = position === 'LONG' ? (currentPrice - entryPrice) : (entryPrice - currentPrice);
-                    pnl = (diff / entryPrice) * 100 * 50; // 50x leverage for excitement
-                    
-                    if(pnl > 0) xp += 0.2;
-                    
-                    if(pnl <= -100) {
-                        alert("Micio got REKT! (Liquidated) 🙀");
-                        xp = Math.max(0, xp - 20);
-                        entryPrice = currentPrice;
-                    }
-
-                    document.getElementById('pnl-display').innerText = `PnL: ${pnl.toFixed(2)}%`;
-                    document.getElementById('pnl-display').style.color = pnl >= 0 ? "#238636" : "#f85149";
-                    document.getElementById('xp-display').innerText = `XP: ${Math.floor(xp)}`;
-                    
-                    // Micio Evolution
-                    const s = document.getElementById('micio-sprite');
-                    const a = document.getElementById('micio-aura');
-                    const r = document.getElementById('rank-display');
-                    
-                    if(xp > 100 && xp <= 300) {
-                        s.innerText="🕶️"; 
-                        a.style.background="var(--micio-blue)";
-                        r.innerText = "Rank: ULTRA 🕶️";
-                        r.style.color = "var(--micio-blue)";
-                    } else if(xp > 300) {
-                        s.innerText="👑"; 
-                        a.style.background="var(--micio-fire)";
-                        r.innerText = "Rank: GIGA 👑";
-                        r.style.color = "var(--micio-fire)";
-                    }
+                    if(priceHistory.length > 80) priceHistory.shift();
+                    document.getElementById('price-val').innerText = `BTC: $${currentPrice.toLocaleString()}`;
+                    if(entryPrice === 0) entryPrice = currentPrice;
+                    updateStats();
                 }
             };
-            
-            ws.onerror = (err) => console.error("WS Error", err);
-            ws.onclose = () => setTimeout(initWS, 2000); // Auto-reconnect
+            ws.onclose = () => setTimeout(initConnection, 1000);
         }
 
-        // Controls
-        const setLong = () => { position = 'LONG'; entryPrice = currentPrice; };
-        const setShort = () => { position = 'SHORT'; entryPrice = currentPrice; };
+        function updateStats() {
+            let diff = position === 'LONG' ? (currentPrice - entryPrice) : (entryPrice - currentPrice);
+            pnl = (diff / entryPrice) * 100 * 30; // 30x Leverage
+            
+            if(pnl > 0) {
+                xp += 0.25;
+                sprite.style.transform = `scale(${1 + pnl/400}) rotate(${Math.sin(Date.now()/100)*5}deg)`;
+            } else {
+                sprite.style.transform = `translateX(${Math.random()*4-2}px)`;
+            }
 
-        window.onmousedown = setLong;
-        window.onmouseup = setShort;
-        window.ontouchstart = (e) => { e.preventDefault(); setLong(); };
-        window.ontouchend = (e) => { e.preventDefault(); setShort(); };
+            if(pnl <= -100) { xp = Math.max(0, xp - 50); entryPrice = currentPrice; flash('#f6465d'); }
 
-        function draw() {
+            document.getElementById('pnl-val').innerText = `${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%`;
+            document.getElementById('pnl-val').style.color = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+            document.getElementById('xp-val').innerText = `XP: ${Math.floor(xp)}`;
+            
+            checkEvolution();
+        }
+
+        function checkEvolution() {
+            const r = document.getElementById('rank-name');
+            if(xp > 500 && r.innerText !== "RANK: GIGA") {
+                evolve("GIGA", "👑", "var(--fire)");
+            } else if(xp > 150 && xp <= 500 && r.innerText !== "RANK: ULTRA") {
+                evolve("ULTRA", "🕶️", "var(--blue)");
+            }
+        }
+
+        function evolve(name, ico, color) {
+            document.getElementById('rank-name').innerText = `RANK: ${name}`;
+            document.getElementById('rank-name').style.color = color;
+            sprite.innerText = ico;
+            aura.style.background = color;
+            flash(color);
+        }
+
+        function flash(color) {
+            const f = document.getElementById('flash-overlay');
+            f.style.background = color; f.style.opacity = '0.3';
+            setTimeout(() => f.style.opacity = '0', 500);
+        }
+
+        function setPos(p) { 
+            position = p; entryPrice = currentPrice; 
+            document.getElementById('pos-label').innerText = p;
+            document.getElementById('pos-label').style.color = p === 'LONG' ? 'var(--green)' : 'var(--red)';
+            document.getElementById('direction-hint').innerText = p === 'LONG' ? 'RISING 📈' : 'FALLING 📉';
+        }
+
+        window.onmousedown = () => setPos('LONG');
+        window.onmouseup = () => setPos('SHORT');
+        window.ontouchstart = (e) => { e.preventDefault(); setPos('LONG'); };
+        window.ontouchend = (e) => { e.preventDefault(); setPos('SHORT'); };
+
+        function loop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if(priceHistory.length > 2) {
-                ctx.beginPath(); 
-                ctx.strokeStyle = 'rgba(88, 166, 255, 0.6)'; 
-                ctx.lineWidth = 3;
-                let min = Math.min(...priceHistory); 
-                let max = Math.max(...priceHistory);
-                let range = max - min || 1;
-
+                ctx.beginPath(); ctx.lineWidth = 4;
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.strokeStyle = pnl >= 0 ? 'var(--green)' : 'var(--primary)';
+                let min = Math.min(...priceHistory), max = Math.max(...priceHistory), range = max - min || 1;
                 priceHistory.forEach((p, i) => {
-                    let x = i * (canvas.width / 100);
+                    let x = i * (canvas.width / 80);
                     let y = canvas.height - ((p - min) / range * (canvas.height * 0.4) + (canvas.height * 0.3));
                     if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
+                // Glow effect under line
+                ctx.lineTo(canvas.width, canvas.height); ctx.lineTo(0, canvas.height);
+                ctx.fillStyle = pnl >= 0 ? 'rgba(46,189,103,0.05)' : 'rgba(88,166,255,0.05)';
+                ctx.fill();
             }
-            requestAnimationFrame(draw);
+            requestAnimationFrame(loop);
         }
         window.onresize = resize;
     </script>
