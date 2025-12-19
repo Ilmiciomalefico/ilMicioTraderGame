@@ -3,146 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - OpenSource Excellence</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <title>ilMicioTrader - 3D Cyber Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-blue: #00f3ff;
             --neon-green: #39ff14;
             --neon-red: #ff003c;
             --neon-gold: #ffcc00;
-            --bg-dark: #050505;
+            --bg: #020205;
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-            margin: 0; padding: 0; background: var(--bg-dark);
-            color: white; font-family: 'Rajdhani', sans-serif;
-            overflow: hidden; height: 100vh;
+        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; touch-action: none; }
+        
+        /* 3D Scene Container */
+        #scene-container {
+            position: relative; width: 100vw; height: 100vh;
+            perspective: 1000px; display: flex; justify-content: center; align-items: center;
         }
 
-        /* Cyberpunk UI */
-        #ui-header {
-            position: absolute; top: 20px; width: 94%; left: 3%;
-            display: flex; justify-content: space-between; z-index: 100;
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; z-index: 100;
+            pointer-events: none;
         }
-        .stats-container {
-            background: rgba(0, 0, 0, 0.6);
-            padding: 15px; border-left: 4px solid var(--neon-blue);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
-            backdrop-filter: blur(10px);
+        .stat-card {
+            background: rgba(0,0,0,0.7); border: 2px solid var(--neon-blue);
+            padding: 15px; border-radius: 5px; box-shadow: 0 0 15px var(--neon-blue);
         }
-        #rank-title { font-family: 'Orbitron', sans-serif; font-size: 0.7em; letter-spacing: 2px; color: var(--neon-blue); }
-        #xp-counter { font-size: 1.8em; font-weight: 900; }
 
-        /* Micio Center Stage */
-        #world {
-            position: relative; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            background: radial-gradient(circle at center, #111 0%, #000 100%);
-        }
-        #micio-wrapper { position: relative; z-index: 10; transition: transform 0.1s; }
-        #micio-sprite {
-            font-size: 120px; filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
-            animation: float 3s infinite ease-in-out;
-        }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-
-        /* Dynamic Aura */
-        .aura-core {
+        /* Micio & Aura */
+        #micio-anchor { position: relative; z-index: 50; transform-style: preserve-3d; transition: transform 0.2s; }
+        #micio-sprite { font-size: 100px; filter: drop-shadow(0 0 20px white); cursor: pointer; }
+        .aura {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 250px; height: 250px; border-radius: 50%;
-            filter: blur(50px); opacity: 0.3; z-index: 1;
-            transition: background 0.5s;
+            width: 300px; height: 300px; border-radius: 50%; filter: blur(60px); opacity: 0.4;
         }
 
-        /* Graphics Canvas */
-        #chart-canvas { position: absolute; inset: 0; z-index: 5; }
+        /* 3D Canvas */
+        #chartCanvas { position: absolute; inset: 0; z-index: 10; }
 
-        /* Interaction HUD */
-        #hud {
-            position: absolute; bottom: 40px; text-align: center; z-index: 100;
-            width: 100%; pointer-events: none;
-        }
-        .status-pill {
-            background: rgba(0,0,0,0.8); border: 1px solid var(--neon-blue);
-            padding: 8px 25px; border-radius: 20px;
-            font-family: 'Orbitron', sans-serif; font-size: 0.8em;
-            box-shadow: 0 0 10px var(--neon-blue);
-        }
-
-        /* Glitch Effect */
-        .glitch { animation: glitch-anim 0.2s infinite; }
-        @keyframes glitch-anim {
-            0% { transform: translate(0); }
-            20% { transform: translate(-5px, 5px); }
-            40% { transform: translate(-5px, -5px); }
-            60% { transform: translate(5px, 5px); }
-            80% { transform: translate(5px, -5px); }
-            100% { transform: translate(0); }
-        }
-
-        #start-overlay {
-            position: fixed; inset: 0; background: black; z-index: 1000;
+        #start-screen {
+            position: fixed; inset: 0; background: var(--bg); z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .btn-start {
-            background: transparent; border: 2px solid var(--neon-green);
-            color: var(--neon-green); padding: 20px 60px; font-family: 'Orbitron', sans-serif;
-            font-weight: bold; cursor: pointer; transition: 0.3s;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+        .btn-glitch {
+            background: transparent; border: 2px solid var(--neon-green); color: var(--neon-green);
+            padding: 20px 50px; font-size: 1.5em; cursor: pointer; font-family: 'Orbitron';
         }
-        .btn-start:hover { background: var(--neon-green); color: black; box-shadow: 0 0 40px var(--neon-green); }
     </style>
 </head>
 <body>
 
-    <div id="start-overlay">
-        <div style="font-size: 100px; margin-bottom: 20px;">🎮</div>
-        <h1 style="font-family: 'Orbitron'; color: var(--neon-blue); letter-spacing: 5px;">IL MICIO TRADER</h1>
-        <p style="letter-spacing: 2px; margin-bottom: 40px;">BITGET REAL-TIME ENGINE</p>
-        <button class="btn-start" onclick="initGame()">INITIALIZE SYSTEM</button>
+    <div id="start-screen">
+        <h1 style="color:var(--neon-blue); letter-spacing:10px;">3D MICIO</h1>
+        <button class="btn-glitch" onclick="init()">ENTER MATRIX</button>
     </div>
 
-    <div id="ui-header">
-        <div class="stats-container">
-            <div id="rank-title">SYSTEM RANK: CHUNKY</div>
-            <div id="xp-counter">XP 0000</div>
+    <div id="ui-layer">
+        <div class="stat-card">
+            <div id="rank-text" style="font-size: 0.8em; color: var(--neon-blue);">RANK: CHUNKY</div>
+            <div id="xp-val" style="font-size: 1.5em;">XP 0</div>
         </div>
-        <div class="stats-container" style="border-left: none; border-right: 4px solid var(--neon-blue); text-align: right;">
-            <div id="live-price" style="color: var(--neon-blue); font-family: 'Orbitron'; font-size: 0.9em;">BTC/USDT CONNECTING...</div>
-            <div id="pnl-pct" style="font-size: 1.8em; font-weight: 900;">+0.00%</div>
+        <div class="stat-card" style="text-align: right; border-color: var(--neon-gold);">
+            <div id="price-val" style="font-size: 0.8em;">BTC/USDT</div>
+            <div id="pnl-val" style="font-size: 1.5em; font-weight: 900;">0.00%</div>
         </div>
     </div>
 
-    <div id="world">
-        <div id="aura" class="aura-core" style="background: var(--neon-blue);"></div>
-        <div id="micio-wrapper">
+    <div id="scene-container">
+        <div id="aura" class="aura" style="background: var(--neon-blue);"></div>
+        <div id="micio-anchor">
             <div id="micio-sprite">🐱</div>
         </div>
-        <canvas id="chart-canvas"></canvas>
-    </div>
-
-    <div id="hud">
-        <div class="status-pill" id="action-hint">HOLD FOR LONG POSITION</div>
+        <canvas id="chartCanvas"></canvas>
     </div>
 
     <script>
-        let state = { xp: 0, price: 0, entry: 0, pos: 'SHORT', history: [], pnl: 0, rank: 'CHUNKY' };
-        const canvas = document.getElementById('chart-canvas');
+        let state = { xp: 0, price: 0, entry: 0, pos: 'SHORT', history: [], pnl: 0 };
+        const canvas = document.getElementById('chartCanvas');
         const ctx = canvas.getContext('2d');
-        const micio = document.getElementById('micio-sprite');
-        const aura = document.getElementById('aura');
+        const anchor = document.getElementById('micio-anchor');
 
-        function initGame() {
-            document.getElementById('start-overlay').style.display = 'none';
-            connectWS();
-            window.onresize = resize; resize();
-            requestAnimationFrame(renderLoop);
+        function init() {
+            document.getElementById('start-screen').style.display = 'none';
+            window.addEventListener('resize', resize);
+            resize();
+            connect();
+            animate();
         }
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
-        function connectWS() {
+        function connect() {
             const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
             ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"instType":"sp","channel":"ticker","instId":"BTCUSDT"}]}));
             ws.onmessage = (e) => {
@@ -150,85 +102,79 @@
                 if (d.data && d.data[0]) {
                     state.price = parseFloat(d.data[0].lastPr);
                     state.history.push(state.price);
-                    if(state.history.length > 100) state.history.shift();
+                    if(state.history.length > 50) state.history.shift();
                     if(state.entry === 0) state.entry = state.price;
-                    updateLogic();
+                    update();
                 }
             };
-            ws.onclose = () => setTimeout(connectWS, 1000);
         }
 
-        function updateLogic() {
+        function update() {
             let diff = state.pos === 'LONG' ? (state.price - state.entry) : (state.entry - state.price);
-            state.pnl = (diff / state.entry) * 100 * 40; // High stakes: 40x leverage
-            
-            if(state.pnl > 0) state.xp += 0.33;
-            if(state.pnl <= -100) { 
-                state.xp = Math.max(0, state.xp - 100); 
-                state.entry = state.price;
-                triggerGlitch();
-            }
+            state.pnl = (diff / state.entry) * 100 * 50; 
+            if(state.pnl > 0) state.xp += 0.5;
+            if(state.pnl <= -100) { state.xp = Math.max(0, state.xp - 50); state.entry = state.price; }
 
-            // Update UI
-            document.getElementById('live-price').innerText = `BTC: $${state.price.toLocaleString()}`;
-            const pnlEl = document.getElementById('pnl-pct');
-            pnlEl.innerText = `${state.pnl >= 0 ? '+' : ''}${state.pnl.toFixed(2)}%`;
-            pnlEl.style.color = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-red)';
-            document.getElementById('xp-counter').innerText = `XP ${Math.floor(state.xp).toString().padStart(4, '0')}`;
+            document.getElementById('pnl-val').innerText = `${state.pnl.toFixed(2)}%`;
+            document.getElementById('pnl-val').style.color = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-red)';
+            document.getElementById('xp-val').innerText = `XP ${Math.floor(state.xp)}`;
             
-            evolveMicio();
-        }
-
-        function evolveMicio() {
-            if(state.xp > 1000) {
-                micio.innerText = "👑"; aura.style.background = "var(--neon-gold)";
-                document.getElementById('rank-title').innerText = "SYSTEM RANK: GIGA GOD";
-                document.getElementById('rank-title').style.color = "var(--neon-gold)";
-            } else if(state.xp > 300) {
-                micio.innerText = "🕶️"; aura.style.background = "var(--neon-blue)";
-                document.getElementById('rank-title').innerText = "SYSTEM RANK: ULTRA";
+            // 3D Tilt based on PnL
+            anchor.style.transform = `rotateY(${state.pnl/2}deg) rotateX(${-state.pnl/4}deg) scale(${1 + state.pnl/500})`;
+            
+            // Rank evolution
+            if(state.xp > 500) { 
+                document.getElementById('micio-sprite').innerText = "👑"; 
+                document.getElementById('rank-text').innerText = "RANK: GIGA GOD";
+                document.getElementById('aura').style.background = "var(--neon-gold)";
             }
         }
 
-        function triggerGlitch() {
-            document.body.classList.add('glitch');
-            setTimeout(() => document.body.classList.remove('glitch'), 500);
-        }
+        window.onmousedown = () => { state.pos = 'LONG'; state.entry = state.price; };
+        window.onmouseup = () => { state.pos = 'SHORT'; state.entry = state.price; };
+        window.ontouchstart = (e) => { e.preventDefault(); state.pos = 'LONG'; state.entry = state.price; };
+        window.ontouchend = (e) => { e.preventDefault(); state.pos = 'SHORT'; state.entry = state.price; };
 
-        // Inputs
-        const inputStart = () => { state.pos = 'LONG'; state.entry = state.price; document.getElementById('action-hint').innerText = "LONG POSITION ACTIVE"; document.getElementById('action-hint').style.color = "var(--neon-green)"; };
-        const inputEnd = () => { state.pos = 'SHORT'; state.entry = state.price; document.getElementById('action-hint').innerText = "SHORT POSITION ACTIVE"; document.getElementById('action-hint').style.color = "var(--neon-red)"; };
-
-        window.onmousedown = inputStart; window.onmouseup = inputEnd;
-        window.ontouchstart = (e) => { e.preventDefault(); inputStart(); };
-        window.ontouchend = (e) => { e.preventDefault(); inputEnd(); };
-
-        function renderLoop() {
+        function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if(state.history.length > 2) {
-                // Glow effect for the line
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-blue)';
+            
+            // Draw 3D-like Grid (Perspective Lines)
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for(let i = 0; i < 10; i++) {
                 ctx.beginPath();
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-blue)';
-                
+                ctx.moveTo(canvas.width/2, canvas.height/2);
+                ctx.lineTo(Math.random()*canvas.width, canvas.height);
+                ctx.stroke();
+            }
+
+            // Draw 3D Price Ribbon
+            if(state.history.length > 2) {
                 let min = Math.min(...state.history);
                 let max = Math.max(...state.history);
                 let range = max - min || 1;
 
-                state.history.forEach((p, i) => {
-                    let x = i * (canvas.width / 100);
-                    let y = canvas.height - ((p - min) / range * (canvas.height * 0.6) + (canvas.height * 0.2));
-                    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                });
-                ctx.stroke();
-                ctx.shadowBlur = 0;
+                ctx.lineWidth = 5;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = state.pnl >= 0 ? 'var(--neon-green)' : 'var(--neon-blue)';
+                
+                for(let i = 1; i < state.history.length; i++) {
+                    let x1 = (i-1) * (canvas.width / 50);
+                    let x2 = i * (canvas.width / 50);
+                    
+                    // Perspective calculation (y moves towards center as it goes to the left/past)
+                    let y1 = canvas.height/2 + (state.history[i-1] - (min + range/2)) / range * (canvas.height * 0.8) * (i/50);
+                    let y2 = canvas.height/2 + (state.history[i] - (min + range/2)) / range * (canvas.height * 0.8) * ((i+1)/50);
+
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(0, 243, 255, ${i/50})`;
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
             }
-            // Parallax effect on Micio
-            document.getElementById('micio-wrapper').style.transform = `scale(${1 + state.pnl/500}) translateY(${Math.sin(Date.now()/500)*10}px)`;
-            
-            requestAnimationFrame(renderLoop);
+            ctx.shadowBlur = 0;
+            requestAnimationFrame(animate);
         }
     </script>
 </body>
