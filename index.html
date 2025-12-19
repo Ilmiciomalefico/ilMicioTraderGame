@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Infinite RSI Edition</title>
+    <title>ilMicioTrader - RSI Fix</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #050608; --gray: #64748b; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; touch-action: none; }
@@ -19,30 +19,25 @@
             display: flex; flex-direction: column; align-items: center; pointer-events: auto; z-index: 20; 
         }
 
-        /* RSI Visualizer */
-        #rsi-container { width: 90%; height: 50px; background: rgba(0,0,0,0.6); border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; position: relative; overflow: hidden; }
+        #rsi-container { width: 90%; height: 50px; background: rgba(0,0,0,0.6); border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
         #rsiCanvas { width: 100%; height: 100%; display: block; }
 
         .btn-row { display: flex; width: 100%; justify-content: space-evenly; }
-        
         .trade-btn {
             flex: 1; margin: 0 5px; padding: 18px 5px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.1);
             font-weight: 900; font-size: 1rem; color: white; cursor: pointer; text-transform: uppercase;
-            transition: 0.2s; background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.5);
         }
         #btn-long { border-color: var(--neon); color: var(--neon); }
         #btn-short { border-color: var(--red); color: var(--red); }
         #btn-exit { border-color: var(--gray); color: var(--gray); }
         
-        .active-long { background: var(--neon) !important; color: black !important; box-shadow: 0 0 15px var(--neon); }
-        .active-short { background: var(--red) !important; color: white !important; box-shadow: 0 0 15px var(--red); }
+        .active-long { background: var(--neon) !important; color: black !important; }
+        .active-short { background: var(--red) !important; color: white !important; }
         .active-exit { background: var(--gray) !important; color: white !important; }
 
         #xp-bar { width: 100%; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 5px; }
         #xp-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.3s; }
-
-        .price-up { color: var(--neon); }
-        .price-down { color: var(--red); }
         canvas { display: block; }
     </style>
 </head>
@@ -67,9 +62,7 @@
         </div>
 
         <div id="controls">
-            <div id="rsi-container">
-                <canvas id="rsiCanvas"></canvas>
-            </div>
+            <div id="rsi-container"><canvas id="rsiCanvas"></canvas></div>
             <div class="btn-row">
                 <button id="btn-long" class="trade-btn" onclick="setMode('LONG')">LONG</button>
                 <button id="btn-exit" class="trade-btn active-exit" onclick="setMode('EXIT')">EXIT</button>
@@ -96,10 +89,11 @@
             isStarted = true;
             resize();
             initWS();
+            render();
         }
 
-        function setMode(newMode) {
-            mode = newMode;
+        function setMode(m) {
+            mode = m;
             document.getElementById('btn-long').className = 'trade-btn' + (mode === 'LONG' ? ' active-long' : '');
             document.getElementById('btn-short').className = 'trade-btn' + (mode === 'SHORT' ? ' active-short' : '');
             document.getElementById('btn-exit').className = 'trade-btn' + (mode === 'EXIT' ? ' active-exit' : '');
@@ -107,27 +101,32 @@
 
         function initWS() {
             const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-            ws.onopen = () => ws.send(JSON.stringify({
-                "op": "subscribe",
-                "args": [{"instType": "SPOT", "channel": "ticker", "instId": "BTCUSDT"}]
-            }));
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    "op": "subscribe",
+                    "args": [{"instType": "SPOT", "channel": "ticker", "instId": "BTCUSDT"}]
+                }));
+            };
             ws.onmessage = (e) => {
                 const d = JSON.parse(e.data);
-                if (d.data && d.data[0]) processMarketData(parseFloat(d.data[0].lastPr));
+                if (d.data && d.data[0]) {
+                    processMarketData(parseFloat(d.data[0].lastPr));
+                }
             };
             ws.onclose = () => { if(isStarted) setTimeout(initWS, 1000); };
+            ws.onerror = (err) => console.log("WS Error: ", err);
         }
 
         function calculateRSI(price) {
             lastPrices.push(price);
             if (lastPrices.length > 14) {
-                let u = 0, d = 0;
-                for (let i = 1; i < 14; i++) {
-                    let diff = lastPrices[lastPrices.length-i] - lastPrices[lastPrices.length-i-1];
-                    if (diff > 0) u += diff; else d -= diff;
+                let gains = 0, losses = 0;
+                for (let i = 1; i < 15; i++) {
+                    let diff = lastPrices[lastPrices.length - i] - lastPrices[lastPrices.length - i - 1];
+                    if (diff >= 0) gains += diff; else losses -= diff;
                 }
                 lastPrices.shift();
-                let rs = (u/14) / (Math.abs(d/14) || 1);
+                let rs = (gains / 14) / (Math.abs(losses / 14) || 1);
                 return 100 - (100 / (1 + rs));
             }
             return 50;
@@ -135,26 +134,19 @@
 
         function processMarketData(price) {
             if (currentPrice) {
-                ema9 = (price - ema9) * (2/10) + ema9;
-                let rsi = calculateRSI(price);
-                rsiHistory.push(rsi);
+                ema9 = (price - ema9) * 0.2 + ema9;
+                let rsiVal = calculateRSI(price);
+                rsiHistory.push(rsiVal);
                 if(rsiHistory.length > 80) rsiHistory.shift();
 
                 if (mode !== 'EXIT') {
                     const change = (price - currentPrice) / currentPrice;
-                    const move = (balance + pnl) * change * leverage * (mode === 'LONG' ? 1 : -1);
-                    pnl += move;
-
+                    pnl += (balance + pnl) * change * leverage * (mode === 'LONG' ? 1 : -1);
                     if ((mode === 'LONG' && price > ema9) || (mode === 'SHORT' && price < ema9)) {
-                        xp += 2;
-                        if (xp > level * 100) levelUp();
+                        xp += 2; if (xp > level * 100) { level++; xp = 0; leverage += 5; }
                     }
                 }
-
-                if (balance + pnl <= 0) { 
-                    balance = 10000; pnl = 0; xp = 0; level = 1; leverage = 5;
-                    setMode('EXIT');
-                }
+                if (balance + pnl <= 0) { balance = 10000; pnl = 0; mode = 'EXIT'; setMode('EXIT'); }
             } else { ema9 = price; }
             
             currentPrice = price;
@@ -163,19 +155,14 @@
             updateUI();
         }
 
-        function levelUp() {
-            level++; leverage += 5; xp = 0;
-            const titles = ["BAJSO", "TRADER", "BULLY", "ALPHA", "GIGA MICIO"];
-            document.getElementById('rank-text').innerText = `RANK: ${titles[Math.min(level-1, 4)]} (LVL ${level})`;
-        }
-
         function updateUI() {
             document.getElementById('balance').innerText = "$" + (balance + pnl).toLocaleString(undefined,{minimumFractionDigits:2});
+            document.getElementById('btc-price').innerText = currentPrice.toFixed(2);
             const pnlEl = document.getElementById('pnl');
             pnlEl.innerText = `P/L: ${pnl>=0?"+":""}${pnl.toFixed(2)}`;
-            pnlEl.className = pnl >= 0 ? "price-up" : "price-down";
-            document.getElementById('btc-price').innerText = currentPrice.toFixed(2);
+            pnlEl.style.color = pnl >= 0 ? "#00ff88" : "#ff3366";
             document.getElementById('xp-fill').style.width = (xp / (level * 100) * 100) + "%";
+            document.getElementById('rank-text').innerText = `RANK: LVL ${level}`;
         }
 
         function resize() {
@@ -186,55 +173,26 @@
         }
         window.onresize = resize;
 
-        function drawRSI() {
-            rsiCtx.clearRect(0, 0, rsiCanvas.width, rsiCanvas.height);
-            if (rsiHistory.length < 2) return;
-
-            rsiCtx.beginPath();
-            rsiCtx.lineWidth = 2;
-            rsiHistory.forEach((r, i) => {
-                let x = i * (rsiCanvas.width / 79);
-                let y = rsiCanvas.height - (r / 100 * rsiCanvas.height);
-                rsiCtx.strokeStyle = r > 70 ? "#ff3366" : (r < 30 ? "#00ff88" : "#4285f4");
-                if (i === 0) rsiCtx.moveTo(x, y); else rsiCtx.lineTo(x, y);
-            });
-            rsiCtx.stroke();
-        }
-
-        function getMicioEmoji() {
-            if (mode === 'EXIT') return "😴";
-            if (pnl > 50) return level >= 3 ? "🚀" : "🤑";
-            if (pnl < -50) return "😰";
-            if (pnl < 0) return "🙀";
-            return level >= 3 ? "🕶️" : "🐱";
-        }
-
-        function drawMicio(x, y) {
-            ctx.save();
-            ctx.translate(x, y);
-            let glow = mode === 'EXIT' ? "#64748b" : (mode === 'LONG' ? "#00ff88" : "#ff3366");
-            ctx.shadowBlur = 25;
-            ctx.shadowColor = glow;
-            ctx.fillStyle = "#111";
-            ctx.beginPath();
-            ctx.arc(0, 0, 30, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = glow;
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.font = "30px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText(getMicioEmoji(), 0, 10);
-            ctx.restore();
-        }
-
         function render() {
-            if (!isStarted) { requestAnimationFrame(render); return; }
+            if (!isStarted) return;
             ctx.fillStyle = "#050608";
             ctx.fillRect(0, 0, width, height);
 
-            drawRSI();
+            // RSI Draw
+            rsiCtx.clearRect(0, 0, rsiCanvas.width, rsiCanvas.height);
+            if (rsiHistory.length > 2) {
+                rsiCtx.beginPath();
+                rsiCtx.lineWidth = 2;
+                rsiHistory.forEach((r, i) => {
+                    let x = i * (rsiCanvas.width / 79);
+                    let y = rsiCanvas.height - (r / 100 * rsiCanvas.height);
+                    rsiCtx.strokeStyle = r > 70 ? "#ff3366" : (r < 30 ? "#00ff88" : "#4285f4");
+                    if (i === 0) rsiCtx.moveTo(x, y); else rsiCtx.lineTo(x, y);
+                });
+                rsiCtx.stroke();
+            }
 
+            // Price Draw
             if (points.length > 2) {
                 const min = Math.min(...points), max = Math.max(...points), range = (max-min)||20;
                 const getY = (p) => height/2 + (height/4) * (-(p - (min+max)/2) / (range/2));
@@ -243,20 +201,19 @@
                 ctx.beginPath();
                 ctx.lineWidth = 4;
                 ctx.strokeStyle = mode === 'EXIT' ? "#64748b" : (mode === 'LONG' ? "#00ff88" : "#ff3366");
-                points.forEach((p, i) => { 
-                    const x = i * spacing;
-                    const y = getY(p);
-                    if(i==0) ctx.moveTo(x, y); else ctx.lineTo(x, y); 
+                points.forEach((p, i) => {
+                    let x = i * spacing; let y = getY(p);
+                    if(i==0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
 
-                const targetY = getY(points[points.length-1]);
-                catY += (targetY - catY) * 0.15;
-                drawMicio((points.length-1) * spacing, catY);
+                catY += (getY(points[points.length-1]) - catY) * 0.15;
+                ctx.font = "30px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText(mode === 'EXIT' ? "😴" : (pnl > 0 ? "🤑" : "🐱"), (points.length-1)*spacing, catY);
             }
             requestAnimationFrame(render);
         }
-        render();
     </script>
 </body>
 </html>
