@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - RSI Fix</title>
+    <title>ilMicioTrader - Hybrid 1s/1m RSI</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #050608; --gray: #64748b; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; touch-action: none; }
@@ -19,7 +19,12 @@
             display: flex; flex-direction: column; align-items: center; pointer-events: auto; z-index: 20; 
         }
 
-        #rsi-container { width: 90%; height: 50px; background: rgba(0,0,0,0.6); border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+        /* POVEČAN RSI PANEL */
+        #rsi-container { 
+            width: 94%; height: 100px; background: rgba(0,0,0,0.8); 
+            border: 1px solid #334155; border-radius: 8px; margin-bottom: 10px; 
+            position: relative; overflow: hidden;
+        }
         #rsiCanvas { width: 100%; height: 100%; display: block; }
 
         .btn-row { display: flex; width: 100%; justify-content: space-evenly; }
@@ -81,7 +86,7 @@
 
         let width, height, points = [], rsiHistory = [], currentPrice = 0, catY = 0;
         let balance = 10000, pnl = 0, level = 1, leverage = 5, xp = 0, mode = 'EXIT';
-        let isStarted = false, ema9 = 0, lastPrices = [];
+        let isStarted = false, ema9 = 0, lastMinutePrices = [], tickerCount = 0;
 
         function startGame() {
             document.getElementById('start-screen').style.display = 'none';
@@ -114,30 +119,34 @@
                 }
             };
             ws.onclose = () => { if(isStarted) setTimeout(initWS, 1000); };
-            ws.onerror = (err) => console.log("WS Error: ", err);
         }
 
-        function calculateRSI(price) {
-            lastPrices.push(price);
-            if (lastPrices.length > 14) {
-                let gains = 0, losses = 0;
-                for (let i = 1; i < 15; i++) {
-                    let diff = lastPrices[lastPrices.length - i] - lastPrices[lastPrices.length - i - 1];
-                    if (diff >= 0) gains += diff; else losses -= diff;
+        // RSI logika na 1-minutnem vzorcu
+        function updateRSI(price) {
+            tickerCount++;
+            if (tickerCount >= 60) { // Približno vsaka minuta (60 tickerjev)
+                lastMinutePrices.push(price);
+                tickerCount = 0;
+                
+                if (lastMinutePrices.length > 14) {
+                    let gains = 0, losses = 0;
+                    for (let i = 1; i < 15; i++) {
+                        let diff = lastMinutePrices[lastMinutePrices.length - i] - lastMinutePrices[lastMinutePrices.length - i - 1];
+                        if (diff >= 0) gains += diff; else losses -= diff;
+                    }
+                    lastMinutePrices.shift();
+                    let rs = (gains / 14) / (Math.abs(losses / 14) || 1);
+                    let rsiVal = 100 - (100 / (1 + rs));
+                    rsiHistory.push(rsiVal);
+                    if (rsiHistory.length > 60) rsiHistory.shift();
                 }
-                lastPrices.shift();
-                let rs = (gains / 14) / (Math.abs(losses / 14) || 1);
-                return 100 - (100 / (1 + rs));
             }
-            return 50;
         }
 
         function processMarketData(price) {
             if (currentPrice) {
                 ema9 = (price - ema9) * 0.2 + ema9;
-                let rsiVal = calculateRSI(price);
-                rsiHistory.push(rsiVal);
-                if(rsiHistory.length > 80) rsiHistory.shift();
+                updateRSI(price);
 
                 if (mode !== 'EXIT') {
                     const change = (price - currentPrice) / currentPrice;
@@ -147,7 +156,11 @@
                     }
                 }
                 if (balance + pnl <= 0) { balance = 10000; pnl = 0; mode = 'EXIT'; setMode('EXIT'); }
-            } else { ema9 = price; }
+            } else { 
+                ema9 = price; 
+                // Inicializacija RSI z ravnijo 50
+                for(let i=0; i<60; i++) rsiHistory.push(50);
+            }
             
             currentPrice = price;
             points.push(price);
@@ -169,30 +182,52 @@
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
             rsiCanvas.width = rsiCanvas.offsetWidth;
-            rsiCanvas.height = rsiCanvas.offsetHeight;
+            rsiCanvas.height = 100; // Fiksna višina za večji pregled
         }
         window.onresize = resize;
 
-        function render() {
-            if (!isStarted) return;
-            ctx.fillStyle = "#050608";
-            ctx.fillRect(0, 0, width, height);
-
-            // RSI Draw
+        function drawRSIPanel() {
             rsiCtx.clearRect(0, 0, rsiCanvas.width, rsiCanvas.height);
+            
+            // Risanje mrežnih črt (0, 30, 50, 70, 100)
+            const levels = [0, 30, 50, 70, 100];
+            rsiCtx.lineWidth = 1;
+            levels.forEach(l => {
+                let y = rsiCanvas.height - (l / 100 * rsiCanvas.height);
+                rsiCtx.strokeStyle = (l === 30 || l === 70) ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.1)";
+                rsiCtx.beginPath();
+                rsiCtx.moveTo(0, y);
+                rsiCtx.lineTo(rsiCanvas.width, y);
+                rsiCtx.stroke();
+                
+                // Oznake številk
+                rsiCtx.fillStyle = "rgba(255, 255, 255, 0.5)";
+                rsiCtx.font = "10px Arial";
+                rsiCtx.fillText(l, 5, y < 10 ? 10 : y - 2);
+            });
+
+            // Risanje RSI črte
             if (rsiHistory.length > 2) {
                 rsiCtx.beginPath();
                 rsiCtx.lineWidth = 2;
                 rsiHistory.forEach((r, i) => {
-                    let x = i * (rsiCanvas.width / 79);
+                    let x = i * (rsiCanvas.width / (rsiHistory.length - 1));
                     let y = rsiCanvas.height - (r / 100 * rsiCanvas.height);
                     rsiCtx.strokeStyle = r > 70 ? "#ff3366" : (r < 30 ? "#00ff88" : "#4285f4");
                     if (i === 0) rsiCtx.moveTo(x, y); else rsiCtx.lineTo(x, y);
                 });
                 rsiCtx.stroke();
             }
+        }
 
-            // Price Draw
+        function render() {
+            if (!isStarted) return;
+            ctx.fillStyle = "#050608";
+            ctx.fillRect(0, 0, width, height);
+
+            drawRSIPanel();
+
+            // Glavni graf (ostaja sekunden in živahen)
             if (points.length > 2) {
                 const min = Math.min(...points), max = Math.max(...points), range = (max-min)||20;
                 const getY = (p) => height/2 + (height/4) * (-(p - (min+max)/2) / (range/2));
