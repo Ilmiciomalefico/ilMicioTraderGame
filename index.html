@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Precise v14</title>
+    <title>ilMicioTrader - Trippy Tunnel Edition v17</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -11,50 +11,52 @@
         
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
         
-        /* Start Screen */
         #start-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; }
+        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0,255,136,0.2); }
 
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; }
 
         #price-section { flex: 3; position: relative; overflow: hidden; }
-        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.6); border-top: 2px solid rgba(255,255,255,0.1); }
+        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.7); border-top: 2px solid rgba(255,255,255,0.1); }
         #controls { flex: 0 0 auto; background: var(--panel); padding: 15px; border-top: 3px solid #334155; }
 
         .overlay { position: absolute; padding: 15px; z-index: 10; pointer-events: none; width: 100%; display: flex; justify-content: space-between; }
-        #balance-txt { font-size: 1.4rem; font-weight: 900; }
-        #price-txt { font-size: 1.6rem; font-weight: 900; color: var(--neon); }
+        #balance-txt { font-size: 1.5rem; font-weight: 900; }
+        #price-txt { font-size: 1.8rem; font-weight: 900; color: var(--neon); text-shadow: 0 0 15px var(--neon); }
 
         .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .box { flex: 1; background: #000; border: 1px solid #334155; padding: 8px; border-radius: 6px; }
         .box label { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; }
         .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.1rem; outline: none; font-weight: bold; }
 
-        .btn-row { display: flex; gap: 10px; height: 60px; }
-        .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1rem; }
-        .b-long { background: var(--neon); color: #000; }
-        .b-short { background: var(--red); color: #fff; }
-        .b-exit { background: #334155; color: #fff; }
+        .btn-row { display: flex; gap: 10px; height: 65px; }
+        .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1.1rem; }
+        .b-long { background: var(--neon); color: #000; box-shadow: 0 4px 0 #00cc6a; }
+        .b-short { background: var(--red); color: #fff; box-shadow: 0 4px 0 #cc2952; }
+        .b-exit { background: #334155; color: #fff; box-shadow: 0 4px 0 #1e293b; }
+        .t-btn:active { transform: translateY(4px); box-shadow: none; }
 
         .lang-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 15px; border-radius: 5px; margin: 5px; cursor: pointer; }
         .lang-btn.active { border-color: var(--neon); color: var(--neon); }
         
         canvas { display: block; width: 100%; height: 100%; }
+        
+        .shake { animation: shake 0.15s cubic-bezier(.36,.07,.19,.97) infinite; transform: translate3d(0, 0, 0); }
+        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } 40%, 60% { transform: translate3d(6px, 0, 0); } }
     </style>
 </head>
-<body>
+<body id="main-body">
 
 <canvas id="bg-canvas"></canvas>
 
 <div id="start-screen">
     <div class="panel">
-        <h1 style="color: var(--neon); margin: 0;">🐈 ilMicioTrader</h1>
-        <div style="margin: 15px 0;">
-            <button class="lang-btn active" id="btn-en" onclick="setLang('en')">🇬🇧 EN</button>
-            <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">🇸🇮 SI</button>
+        <h1 style="color: var(--neon); margin: 0; font-size: 2.2rem;">🐈 ilMicioTrader</h1>
+        <div style="margin: 20px 0;">
+            <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+            <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">SI</button>
         </div>
-        <div id="intro-text" style="text-align: left; font-size: 0.85rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 15px 0; padding-top: 15px;">
-            </div>
+        <div id="intro-text" style="text-align: left; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 15px 0; padding-top: 15px;"></div>
         <button class="t-btn b-long" style="width: 100%;" onclick="startGame()" id="start-btn">START</button>
     </div>
 </div>
@@ -73,12 +75,10 @@
         </div>
         <canvas id="priceCanvas"></canvas>
     </div>
-
     <div id="rsi-section">
-        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">1M TIMEFRAME RSI (1S UPDATES)</div>
+        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">1M RSI | 1S LIVE UPDATES</div>
         <canvas id="rsiCanvas"></canvas>
     </div>
-
     <div id="controls">
         <div class="input-row">
             <div class="box"><label>Leverage</label><input type="number" id="inp-lev" value="500"></div>
@@ -93,6 +93,7 @@
 </div>
 
 <script>
+    const bBody = document.getElementById('main-body');
     const bgCtx = document.getElementById('bg-canvas').getContext('2d');
     const pCtx = document.getElementById('priceCanvas').getContext('2d');
     const rCtx = document.getElementById('rsiCanvas').getContext('2d');
@@ -102,8 +103,8 @@
     let tunnelPhase = 0;
 
     const texts = {
-        en: { intro: "<p>• Real 1m RSI Logic<br>• 1s Real-time Price<br>• Dynamic Emoji Rider<br>• Trippy Tunnel Scene</p>", start: "START ENGINE" },
-        sl: { intro: "<p>• Prava 1m RSI Logika<br>• 1s osveževanje cene<br>• Dinamični Maček na grafu<br>• Trippy Tunel scena</p>", start: "ZAGREBI SISTEM" }
+        en: { intro: "<p>• 1m RSI Logic (1s Updates)<br>• Dynamic Micio Rider<br>• Trippy Perspective Tunnel<br>• Real Bitget WebSocket</p>", start: "START ENGINE" },
+        sl: { intro: "<p>• 1m RSI Logika (1s osveževanje)<br>• Dinamični Maček Rider<br>• Trippy Perspektivni Tunel<br>• Realni Bitget Podatki</p>", start: "ZAGREBI SISTEM" }
     };
 
     function setLang(l) {
@@ -112,10 +113,14 @@
         document.getElementById('intro-text').innerHTML = texts[l].intro;
         document.getElementById('start-btn').innerText = texts[l].start;
     }
-    setLang('en');
+    setLang('sl');
 
     function resize() {
-        [bgCtx.canvas, pCtx.canvas, rCtx.canvas].forEach(c => { c.width = c.clientWidth; c.height = c.clientHeight; });
+        [bgCtx, pCtx, rCtx].forEach(ctx => {
+            ctx.canvas.width = window.innerWidth;
+            ctx.canvas.height = ctx.canvas.parentElement.clientHeight;
+        });
+        bgCtx.canvas.height = window.innerHeight; // Ozadje je cez cel ekran
     }
     window.addEventListener('resize', resize);
     resize();
@@ -127,7 +132,7 @@
     }
 
     function setMode(m) {
-        if (m === 'EXIT') { balance += pnl; pnl = 0; }
+        if (m === 'EXIT') { balance += pnl; pnl = 0; bBody.classList.remove('shake'); }
         else { entryPrice = currentPrice; }
         mode = m;
     }
@@ -136,19 +141,19 @@
         const now = Date.now();
         const minTs = Math.floor(now / 60000) * 60000;
         if (!currentCandle || currentCandle.time !== minTs) {
-            if (currentCandle) candles.push(currentCandle);
+            if (currentCandle) candles.push({...currentCandle});
             currentCandle = { time: minTs, open: price, close: price };
             if (candles.length > 20) candles.shift();
         }
         currentCandle.close = price;
         if (candles.length < 14) return 50;
-        let all = candles.map(c => c.close).concat(currentCandle.close);
+        let all = candles.slice(-13).map(c => c.close).concat(currentCandle.close);
         let g = 0, l = 0;
-        for (let i = all.length - 14; i < all.length; i++) {
+        for (let i = 1; i < all.length; i++) {
             let d = all[i] - all[i-1];
             if (d >= 0) g += d; else l += Math.abs(d);
         }
-        return 100 - (100 / (1 + ((g/14)/((l/14)||0.001))));
+        return 100 - (100 / (1 + ((g/14)/((l/14)||0.0001))));
     }
 
     function update(price) {
@@ -157,11 +162,12 @@
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
             pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
+            if (pnl < -50) bBody.classList.add('shake'); else bBody.classList.remove('shake');
         }
         currentPrice = price;
-        prices.push(price); if (prices.length > 300) prices.shift();
+        prices.push(price); if (prices.length > 200) prices.shift();
         let rsi = updateRSI(price);
-        rsiHistory.push(rsi); if (rsiHistory.length > 300) rsiHistory.shift();
+        rsiHistory.push(rsi); if (rsiHistory.length > 200) rsiHistory.shift();
 
         document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toFixed(2);
         document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
@@ -174,13 +180,33 @@
     function loop() {
         const w = bgCtx.canvas.width, h = bgCtx.canvas.height;
         bgCtx.fillStyle = '#010204'; bgCtx.fillRect(0,0,w,h);
-        tunnelPhase += (mode === 'EXIT' ? 0.01 : 0.06);
-        for(let i=0; i<15; i++) {
-            let s = ((i + tunnelPhase) % 15) * (w/10);
-            bgCtx.strokeStyle = `rgba(0, 255, 136, ${0.15 - s/w})`;
-            bgCtx.beginPath(); bgCtx.roundRect(w/2 - s/2, h/2 - s/2, s, s, s*0.2); bgCtx.stroke();
+        
+        // TRIPPY TUNNEL LOGIKA
+        tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.1); // Hitreje ko si v poziciji
+        const centerX = w / 2, centerY = h / 2;
+        const numRings = 12;
+        
+        for(let i = 0; i < numRings; i++) {
+            let progress = (i + tunnelPhase) / numRings;
+            let loopProgress = progress % 1;
+            // Perspektivno sirjenje: s = exp(progress)
+            let size = Math.pow(loopProgress, 3) * Math.max(w, h) * 1.5;
+            let alpha = Math.sin(loopProgress * Math.PI) * 0.2; // Zbledi na zacetku in koncu
+            
+            bgCtx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+            bgCtx.lineWidth = 2 + loopProgress * 10;
+            bgCtx.beginPath();
+            // Trippy rotacija in oblika
+            let rot = loopProgress * Math.PI * 0.2;
+            bgCtx.save();
+            bgCtx.translate(centerX, centerY);
+            bgCtx.rotate(rot);
+            bgCtx.roundRect(-size/2, -size/2, size, size, size * 0.15);
+            bgCtx.stroke();
+            bgCtx.restore();
         }
 
+        // BTC Chart
         const pw = pCtx.canvas.width, ph = pCtx.canvas.height;
         pCtx.clearRect(0,0,pw,ph);
         if(prices.length > 2) {
@@ -188,24 +214,25 @@
             const getY = (v) => ph - ((v-min)/range * (ph*0.5) + ph*0.25);
             pCtx.beginPath();
             pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#475569');
-            pCtx.lineWidth = 4;
+            pCtx.lineWidth = 5;
             let lx, ly;
             prices.forEach((p, i) => {
                 lx = i * (pw / (prices.length-1)); ly = getY(p);
                 if(i===0) pCtx.moveTo(lx, ly); else pCtx.lineTo(lx, ly);
             });
             pCtx.stroke();
-            pCtx.font = "40px Arial"; pCtx.textAlign = "right";
+            pCtx.font = "45px Arial"; pCtx.textAlign = "right";
             pCtx.fillText(mode==='EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀"), lx-10, ly);
         }
 
+        // RSI Chart
         const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
         rCtx.clearRect(0,0,rw,rh);
         rCtx.strokeStyle = "rgba(255,255,255,0.1)";
         rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke();
         rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
         if(rsiHistory.length > 1) {
-            rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 3;
+            rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 4;
             rsiHistory.forEach((r, i) => {
                 let x = i * (rw / (rsiHistory.length-1));
                 let y = rh - (r/100 * rh);
@@ -223,6 +250,7 @@
             const d = JSON.parse(e.data);
             if(d.data) update(parseFloat(d.data[0].lastPr));
         };
+        ws.onclose = () => setTimeout(initWS, 1000);
     }
 </script>
 </body>
