@@ -253,14 +253,34 @@
         const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
         rCtx.clearRect(0,0,rw,rh);
         
-        // RSI Gradacija
+        // RSI Oznake in Linije
+        const levels = [
+            {v: 100, label: "100"},
+            {v: 70, label: "70%"},
+            {v: 50, label: "50%"},
+            {v: 30, label: "30%"},
+            {v: 0, label: "0"}
+        ];
+
+        levels.forEach(lvl => {
+            let y = rh - (lvl.v / 100 * rh);
+            // Izriši linijo
+            rCtx.strokeStyle = "rgba(255,255,255,0.1)";
+            rCtx.lineWidth = lvl.v === 50 ? 2 : 1;
+            if(lvl.v === 70 || lvl.v === 30 || lvl.v === 50) rCtx.setLineDash([5, 5]); else rCtx.setLineDash([]);
+            rCtx.beginPath(); rCtx.moveTo(0, y); rCtx.lineTo(rw - 40, y); rCtx.stroke();
+            
+            // Izriši tekst
+            rCtx.fillStyle = "#64748b";
+            rCtx.font = "bold 10px Arial";
+            rCtx.textAlign = "right";
+            rCtx.fillText(lvl.label, rw - 5, y + 4);
+        });
+        rCtx.setLineDash([]); // Reset dash za graf
+
+        // RSI Gradacija (Senčenje)
         rCtx.fillStyle = "rgba(255,51,102,0.05)"; rCtx.fillRect(0, 0, rw, rh*0.3); // Overbought
         rCtx.fillStyle = "rgba(0,255,136,0.05)"; rCtx.fillRect(0, rh*0.7, rw, rh*0.3); // Oversold
-        
-        rCtx.strokeStyle = "rgba(255,255,255,0.1)";
-        rCtx.setLineDash([5, 5]);
-        rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
-        rCtx.setLineDash([]);
 
         if(rsiHistory.length > 1) {
             rCtx.beginPath();
@@ -268,7 +288,7 @@
             rCtx.strokeStyle = lastRsi > 70 ? varProp('--red') : (lastRsi < 30 ? varProp('--neon') : '#fbbf24');
             rCtx.lineWidth = 3;
             rsiHistory.forEach((r, i) => {
-                let x = i * (rw / (rsiHistory.length-1));
+                let x = i * ((rw - 40) / (rsiHistory.length-1));
                 let y = rh - (r/100 * rh);
                 if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             });
