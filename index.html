@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Always-In Logic v28</title>
+    <title>ilMicioTrader - Always-In Logic v29</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -137,7 +137,26 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function startGame() {
+    async function fetchHistory() {
+        try {
+            // Pridobimo zadnjih 100 minutnih svečk iz Bitgeta za takojšen izračun RSI
+            const resp = await fetch('https://api.bitget.com/api/v2/spot/market/history-candles?instId=BTCUSDT&granularity=1min&limit=100');
+            const json = await resp.json();
+            if (json.data) {
+                candles = json.data.map(d => ({
+                    time: parseInt(d[0]),
+                    open: parseFloat(d[1]),
+                    high: parseFloat(d[2]),
+                    low: parseFloat(d[3]),
+                    close: parseFloat(d[4])
+                })).reverse();
+                console.log("Zgodovina naložena, število svečk:", candles.length);
+            }
+        } catch (e) { console.error("Zgodovina ni na voljo:", e); }
+    }
+
+    async function startGame() {
+        await fetchHistory();
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('app-container').style.display = 'flex';
         resize(); initWS(); requestAnimationFrame(loop);
@@ -145,11 +164,8 @@
 
     function setMode(m) {
         if (isGameOver) return;
-        
-        // Če klikneš isto kot že imaš, ne delaj nič
         if (mode === m) return;
 
-        // Vedno najprej zapremo prejšnjo pozicijo in "unovčimo" profit/izgubo
         balance += pnl;
         pnl = 0;
         bBody.classList.remove('shake');
@@ -161,7 +177,6 @@
             mode = m;
         }
 
-        // Takojšnje preverjanje Game Over po zaprtju pozicije
         if (balance <= 0) {
             balance = 0;
             isGameOver = true;
@@ -169,23 +184,41 @@
         }
     }
 
+    function calculateRSI(currentClose) {
+        if (candles.length < 14) return 50;
+        
+        let gains = 0;
+        let losses = 0;
+        
+        // Uporabimo zadnjih 14 zaključenih svečk + trenutno ceno
+        let data = candles.slice(-14).map(c => c.close);
+        data.push(currentClose);
+
+        for (let i = 1; i < data.length; i++) {
+            let diff = data[i] - data[i-1];
+            if (diff >= 0) gains += diff;
+            else losses += Math.abs(diff);
+        }
+        
+        let avgGain = gains / 14;
+        let avgLoss = losses / 14;
+        
+        if (avgLoss === 0) return 100;
+        let rs = avgGain / avgLoss;
+        return 100 - (100 / (1 + rs));
+    }
+
     function updateRSI(price) {
         const now = Date.now();
         const minTs = Math.floor(now / 60000) * 60000;
+        
         if (!currentCandle || currentCandle.time !== minTs) {
             if (currentCandle) candles.push({...currentCandle});
             currentCandle = { time: minTs, open: price, close: price };
-            if (candles.length > 20) candles.shift();
+            if (candles.length > 200) candles.shift();
         }
         currentCandle.close = price;
-        if (candles.length < 14) return 50;
-        let all = candles.slice(-13).map(c => c.close).concat(currentCandle.close);
-        let g = 0, l = 0;
-        for (let i = 1; i < all.length; i++) {
-            let d = all[i] - all[i-1];
-            if (d >= 0) g += d; else l += Math.abs(d);
-        }
-        return 100 - (100 / (1 + ((g/14)/((l/14)||0.0001))));
+        return calculateRSI(price);
     }
 
     function update(price) {
