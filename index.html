@@ -3,141 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - ULTRA FULL v21</title>
+    <title>ilMicioTrader - FINAL ENGINE v24</title>
     <style>
         :root { 
             --neon: #00ff88; 
             --red: #ff3366; 
             --gold: #fbbf24; 
-            --bg: #010204; 
+            --bg: #000000; 
             --panel: rgba(10, 15, 25, 0.98); 
-            --glass: rgba(255, 255, 255, 0.05);
         }
         
-        * { box-sizing: border-box; touch-action: manipulation; -webkit-font-smoothing: antialiased; }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; }
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body, html { 
+            margin: 0; padding: 0; background: var(--bg); color: #fff; 
+            font-family: 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; 
+        }
         
-        /* PERSPEKTIVNI OZADNI TUNEL */
+        /* OZADNI TUNEL - LAYER 0 */
         #bg-canvas { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            z-index: 0; 
-            pointer-events: none;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; 
         }
         
-        /* INTRO SCREEN - DVOJEZIČNI */
+        /* START SCREEN */
         #start-screen { 
-            position: fixed; 
-            inset: 0; 
-            background: radial-gradient(circle at center, #0a0f19 0%, #000 100%); 
-            z-index: 2000; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 20px; 
+            position: fixed; inset: 0; background: #000; z-index: 2000; 
+            display: flex; align-items: center; justify-content: center; padding: 20px; 
         }
         .panel { 
-            background: var(--panel); 
-            border: 1px solid var(--neon); 
-            padding: 40px; 
-            border-radius: 20px; 
-            max-width: 550px; 
-            width: 100%; 
-            text-align: center; 
-            box-shadow: 0 0 60px rgba(0, 255, 136, 0.15); 
-            backdrop-filter: blur(20px);
+            background: var(--panel); border: 2px solid var(--neon); padding: 40px; 
+            border-radius: 20px; max-width: 500px; width: 100%; text-align: center; 
+            box-shadow: 0 0 50px rgba(0,255,136,0.3); 
         }
 
-        /* GLAVNI OKVIR APLIKACIJE */
+        /* MAIN APP - LAYER 10 */
         #app-container { 
-            position: relative; 
-            z-index: 10; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            width: 100vw; 
-            display: none; 
-            background: transparent; 
+            position: relative; z-index: 10; display: none; flex-direction: column; 
+            height: 100vh; width: 100vw; background: transparent; 
         }
 
-        /* SEKCIJE GRAFOV */
-        #price-section { flex: 3; position: relative; overflow: hidden; border-bottom: 1px solid var(--glass); }
+        #price-section { flex: 3; position: relative; overflow: hidden; }
         #rsi-section { 
-            flex: 1.5; 
-            position: relative; 
-            background: rgba(0, 0, 0, 0.4); 
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid #334155;
+            flex: 1.5; position: relative; background: rgba(0,0,0,0.6); 
+            border-top: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); 
         }
-
-        /* KONTROLNA PLOŠČA */
         #controls { 
-            flex: 0 0 auto; 
-            background: #0a0f19; 
-            padding: 20px; 
-            border-top: 1px solid #1e293b; 
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            flex: 0 0 auto; background: var(--panel); padding: 20px; 
+            border-top: 3px solid #334155; 
         }
 
-        /* OVERLAY ELEMENTI */
+        /* OVERLAYS */
         .overlay { 
-            position: absolute; 
-            padding: 20px; 
-            z-index: 100; 
-            pointer-events: none; 
-            width: 100%; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-start;
+            position: absolute; padding: 20px; z-index: 100; pointer-events: none; 
+            width: 100%; display: flex; justify-content: space-between; 
         }
-        #balance-txt { font-size: 1.6rem; font-weight: 900; letter-spacing: -1px; }
+        #balance-txt { font-size: 1.5rem; font-weight: 900; }
         #price-txt { 
-            font-size: 2.2rem; 
-            font-weight: 900; 
-            color: var(--neon); 
-            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); 
+            font-size: 2rem; font-weight: 900; color: var(--neon); 
+            text-shadow: 0 0 15px var(--neon); 
         }
 
-        /* INPUTI IN GUMBI */
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-        .input-box { background: #000; border: 1px solid #334155; padding: 10px; border-radius: 8px; }
-        .input-box label { font-size: 11px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        .input-box input { background: transparent; border: none; color: #fff; width: 100%; font-size: 1.2rem; font-weight: bold; outline: none; }
+        /* INPUTS */
+        .input-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .box { 
+            flex: 1; background: #000; border: 1px solid #334155; 
+            padding: 10px; border-radius: 8px; 
+        }
+        .box label { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; }
+        .box input { 
+            background: transparent; border: none; color: white; width: 100%; 
+            font-size: 1.2rem; outline: none; font-weight: bold; 
+        }
 
-        .btn-row { display: flex; gap: 15px; height: 70px; }
+        /* BUTTONS */
+        .btn-row { display: flex; gap: 10px; height: 70px; }
         .t-btn { 
-            flex: 1; 
-            border: none; 
-            border-radius: 12px; 
-            font-weight: 900; 
-            cursor: pointer; 
-            text-transform: uppercase; 
-            font-size: 1.2rem; 
-            transition: all 0.1s ease;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+            flex: 1; border: none; border-radius: 12px; font-weight: 900; 
+            cursor: pointer; text-transform: uppercase; font-size: 1.2rem; 
         }
-        .b-long { background: var(--neon); color: #010204; }
-        .b-short { background: var(--red); color: #fff; }
-        .b-exit { background: #1e293b; color: #fff; border: 1px solid #334155; }
+        .b-long { background: var(--neon); color: #000; box-shadow: 0 4px 0 #00cc6a; }
+        .b-short { background: var(--red); color: #fff; box-shadow: 0 4px 0 #cc2952; }
+        .b-exit { background: #334155; color: #fff; box-shadow: 0 4px 0 #1e293b; }
         .t-btn:active { transform: translateY(4px); box-shadow: none; }
 
-        /* SHAKE ANIMACIJA - POLNA MOČ */
-        .shaking { animation: ultraShake 0.1s infinite; }
-        @keyframes ultraShake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            20% { transform: translate(-2px, -1px) rotate(-1deg); }
-            40% { transform: translate(-3px, 0px) rotate(1deg); }
-            60% { transform: translate(2px, 1px) rotate(0deg); }
-            80% { transform: translate(1px, -1px) rotate(1deg); }
-            100% { transform: translate(-1px, 2px) rotate(-1deg); }
+        /* LANGUAGE */
+        .lang-btn { 
+            background: #1e293b; border: 1px solid #334155; color: white; 
+            padding: 8px 15px; border-radius: 5px; margin: 5px; cursor: pointer; 
         }
-
-        .lang-selector { margin-bottom: 20px; }
-        .lang-btn { background: #1e293b; border: 1px solid #334155; color: #fff; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .lang-btn.active { border-color: var(--neon); color: var(--neon); }
+        
+        /* SHAKE */
+        .shaking { animation: heavyShake 0.1s infinite; }
+        @keyframes heavyShake {
+            0% { transform: translate(3px, 3px) rotate(0deg); }
+            25% { transform: translate(-3px, -2px) rotate(-1deg); }
+            50% { transform: translate(-4px, 1px) rotate(1deg); }
+            75% { transform: translate(2px, -3px) rotate(-0.5deg); }
+            100% { transform: translate(1px, 2px) rotate(0deg); }
+        }
     </style>
 </head>
 <body id="main-body">
@@ -146,13 +109,13 @@
 
 <div id="start-screen">
     <div class="panel">
-        <h1 style="color: var(--neon); margin-bottom: 10px; font-size: 2.5rem;">🐈 ilMicioTrader</h1>
-        <div class="lang-selector">
-            <button class="lang-btn" id="l-en" onclick="setLanguage('en')">English</button>
-            <button class="lang-btn active" id="l-sl" onclick="setLanguage('sl')">Slovenščina</button>
+        <h1 style="color: var(--neon); margin: 0; font-size: 2.5rem;">🐈 ilMicioTrader</h1>
+        <div style="margin: 20px 0;">
+            <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+            <button class="lang-btn active" id="btn-sl" onclick="setLang('sl')">SI</button>
         </div>
-        <div id="intro-text" style="text-align: left; font-size: 1rem; color: #94a3b8; line-height: 1.6; border-top: 1px solid #334155; padding-top: 20px; margin-bottom: 30px;">
-            </div>
+        <div id="intro-text" style="text-align: left; font-size: 1rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 20px 0; padding-top: 20px; line-height: 1.6;">
+        </div>
         <button class="t-btn b-long" style="width: 100%; padding: 20px;" onclick="startGame()" id="start-btn">ZAGREBI SISTEM</button>
     </div>
 </div>
@@ -165,85 +128,75 @@
                 <div id="pnl-txt" style="font-weight: 900; font-size: 1.2rem;">P/L: $0.00</div>
             </div>
             <div style="text-align: right;">
-                <div id="price-txt">CONNECTING...</div>
-                <div style="font-size: 0.9rem; color: var(--gold); font-weight: bold;">RSI 1M: <span id="rsi-digit">50</span>%</div>
+                <div id="price-txt">BITGET LINKING...</div>
+                <div style="font-size: 0.9rem; color: var(--gold);">RSI 1M: <span id="rsi-digit">50</span>%</div>
             </div>
         </div>
         <canvas id="priceCanvas"></canvas>
     </div>
     
     <div id="rsi-section">
-        <div style="position: absolute; top: 10px; left: 20px; color: var(--gold); font-size: 10px; font-weight: bold; z-index: 5;">RELATIVE STRENGTH INDEX (1M)</div>
         <canvas id="rsiCanvas"></canvas>
     </div>
 
     <div id="controls">
-        <div class="input-grid">
-            <div class="input-box">
-                <label>Lot Size</label>
-                <input type="number" id="inp-lot" value="0.10" step="0.01">
-            </div>
-            <div class="input-box">
-                <label>Leverage</label>
-                <input type="number" id="inp-lev" value="500">
-            </div>
+        <div class="input-row">
+            <div class="box"><label>Lot Size</label><input type="number" id="inp-lot" value="0.50" step="0.1"></div>
+            <div class="box"><label>Leverage</label><input type="number" id="inp-lev" value="500"></div>
         </div>
         <div class="btn-row">
-            <button class="t-btn b-long" onclick="executeTrade('LONG')">LONG</button>
-            <button class="t-btn b-exit" onclick="executeTrade('EXIT')">EXIT</button>
-            <button class="t-btn b-short" onclick="executeTrade('SHORT')">SHORT</button>
+            <button class="t-btn b-long" onclick="setMode('LONG')">LONG</button>
+            <button class="t-btn b-exit" onclick="setMode('EXIT')">EXIT</button>
+            <button class="t-btn b-short" onclick="setMode('SHORT')">SHORT</button>
         </div>
     </div>
 </div>
 
 <script>
-    const body = document.getElementById('main-body');
-    const app = document.getElementById('app-container');
-    const bg = document.getElementById('bg-canvas'), bgCtx = bg.getContext('2d');
-    const pc = document.getElementById('priceCanvas'), pCtx = pc.getContext('2d');
-    const rc = document.getElementById('rsiCanvas'), rCtx = rc.getContext('2d');
+    const appContainer = document.getElementById('app-container');
+    const bgCanvas = document.getElementById('bg-canvas'), bgCtx = bgCanvas.getContext('2d');
+    const pCanvas = document.getElementById('priceCanvas'), pCtx = pCanvas.getContext('2d');
+    const rCanvas = document.getElementById('rsiCanvas'), rCtx = rCanvas.getContext('2d');
 
     let prices = [], rsiHistory = [], candles = [];
-    let currentCandle = null, currentPrice = 0, entryPrice = 0, balance = 10000, pnl = 0, mode = 'EXIT';
+    let currentPrice = 0, entryPrice = 0, balance = 10000, pnl = 0, mode = 'EXIT';
     let tunnelPhase = 0;
+    let currentCandle = null;
 
-    const content = {
-        en: { intro: "• <b>Real-time Bitget Data:</b> 1s updates via WebSocket.<br>• <b>1M RSI Logic:</b> Accurate minute calculations.<br>• <b>Shake Effect:</b> Screen reacts to your losses.<br>• <b>Trippy Tunnel:</b> Interactive warp background.", start: "START ENGINE" },
-        sl: { intro: "• <b>Bitget v živo:</b> 1s osveževanje preko WebSocket.<br>• <b>1M RSI Logika:</b> Natančen minutni izračun.<br>• <b>Shake Efekt:</b> Zaslon se trese ob izgubi.<br>• <b>Trippy Tunel:</b> Interaktivno warp ozadje.", start: "ZAGREBI SISTEM" }
+    const texts = {
+        en: { intro: "• 1M RSI Scale (1-min calculation)<br>• Bitget WebSocket V2 (Real-time)<br>• Warp Tunnel Background<br>• Heavy Shake on Loss<br>• Kitty Rider Dynamic Emoji", start: "START ENGINE" },
+        sl: { intro: "• 1M RSI Skala (1-min izračun)<br>• Bitget WebSocket V2 (V živo)<br>• Warp Tunel v ozadju<br>• Močan Shake ob izgubi<br>• Kitty Rider dinamični emoji", start: "ZAGREBI SISTEM" }
     };
 
-    function setLanguage(lang) {
-        document.getElementById('l-en').classList.toggle('active', lang==='en');
-        document.getElementById('l-sl').classList.toggle('active', lang==='sl');
-        document.getElementById('intro-text').innerHTML = content[lang].intro;
-        document.getElementById('start-btn').innerText = content[lang].start;
+    function setLang(l) {
+        document.getElementById('btn-en').classList.toggle('active', l==='en');
+        document.getElementById('btn-sl').classList.toggle('active', l==='sl');
+        document.getElementById('intro-text').innerHTML = texts[l].intro;
+        document.getElementById('start-btn').innerText = texts[l].start;
     }
-    setLanguage('sl');
+    setLang('sl');
 
     function resize() {
-        bg.width = window.innerWidth; bg.height = window.innerHeight;
-        pc.width = pc.clientWidth; pc.height = pc.clientHeight;
-        rc.width = rc.clientWidth; rc.height = rc.clientHeight;
+        bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight;
+        pCanvas.width = pCanvas.clientWidth; pCanvas.height = pCanvas.clientHeight;
+        rCanvas.width = rCanvas.clientWidth; rCanvas.height = rCanvas.clientHeight;
     }
     window.addEventListener('resize', resize);
     resize();
 
     function startGame() {
-        document.getElementById('start-screen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('start-screen').style.display = 'none';
-            app.style.display = 'flex';
-            resize();
-            initWS();
-            requestAnimationFrame(loop);
-        }, 500);
+        document.getElementById('start-screen').style.display = 'none';
+        appContainer.style.display = 'flex';
+        resize();
+        initWS();
+        requestAnimationFrame(loop);
     }
 
-    function executeTrade(m) {
+    function setMode(m) {
         if (m === 'EXIT') {
             balance += pnl;
             pnl = 0;
-            app.classList.remove('shaking');
+            appContainer.classList.remove('shaking');
         } else {
             entryPrice = currentPrice;
         }
@@ -265,112 +218,70 @@
         
         let lookback = candles.slice(-13).map(c => c.close).concat(currentCandle.close);
         let gains = 0, losses = 0;
-        
         for (let i = 1; i < lookback.length; i++) {
             let diff = lookback[i] - lookback[i-1];
             if (diff >= 0) gains += diff; else losses += Math.abs(diff);
         }
-        
-        let rs = (gains / 14) / ((losses / 14) || 0.00001);
+        let rs = (gains / 14) / ((losses / 14) || 0.0001);
         return 100 - (100 / (1 + rs));
     }
 
-    function updateLogic(price) {
-        if (!currentPrice) currentPrice = price;
-        
-        if (mode !== 'EXIT') {
-            let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
-            let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
-            pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
-            
-            // TRESEJ ČE JE MINUS
-            if (pnl < -15) app.classList.add('shaking');
-            else app.classList.remove('shaking');
-        }
-
-        currentPrice = price;
-        prices.push(price);
-        if (prices.length > 250) prices.shift();
-        
-        let rsi = calculateRSI(price);
-        rsiHistory.push(rsi);
-        if (rsiHistory.length > 250) rsiHistory.shift();
-
-        // UI UPDATE
-        document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toLocaleString(undefined, {minimumFractionDigits: 2});
-        document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
-        document.getElementById('rsi-digit').innerText = Math.round(rsi);
-        const pnlEl = document.getElementById('pnl-txt');
-        pnlEl.innerText = "P/L: $" + pnl.toFixed(2);
-        pnlEl.style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
-    }
-
     function loop() {
-        // 1. DRAW TUNNEL
-        const w = bg.width, h = bg.height;
-        bgCtx.fillStyle = '#010204';
-        bgCtx.fillRect(0, 0, w, h);
-        
+        // --- 1. TUNNEL DRAW (BACKGROUND) ---
+        const w = bgCanvas.width, h = bgCanvas.height;
+        bgCtx.fillStyle = '#000';
+        bgCtx.fillRect(0,0,w,h);
         tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.12);
         bgCtx.save();
         bgCtx.translate(w/2, h/2);
-        for(let i=0; i<18; i++) {
-            let p = ((i + tunnelPhase) % 18) / 18;
+        for(let i=0; i<15; i++) {
+            let p = ((i + tunnelPhase) % 15) / 15;
             let size = Math.pow(p, 4) * Math.max(w, h) * 2.5;
-            let alpha = Math.sin(p * Math.PI) * 0.4;
-            bgCtx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
-            bgCtx.lineWidth = 1 + p * 15;
+            bgCtx.strokeStyle = `rgba(0, 255, 136, ${Math.sin(p * Math.PI) * 0.35})`;
+            bgCtx.lineWidth = 2 + p * 12;
             bgCtx.rotate(p * 0.015);
-            bgCtx.beginPath();
-            bgCtx.roundRect(-size/2, -size/2, size, size, size*0.1);
-            bgCtx.stroke();
+            bgCtx.strokeRect(-size/2, -size/2, size, size);
         }
         bgCtx.restore();
 
-        // 2. DRAW PRICE CHART
-        pCtx.clearRect(0, 0, pc.width, pc.height);
+        // --- 2. PRICE CHART ---
+        pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
         if(prices.length > 2) {
             const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
-            const getY = (v) => pc.height - ((v-min)/range * (pc.height*0.6) + pc.height*0.2);
+            const getY = (v) => pCanvas.height - ((v-min)/range * (pCanvas.height*0.6) + pCanvas.height*0.2);
             
             pCtx.beginPath();
-            pCtx.strokeStyle = mode === 'LONG' ? varColor('--neon') : (mode === 'SHORT' ? varColor('--red') : '#334155');
-            pCtx.lineWidth = 6;
+            pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#555');
+            pCtx.lineWidth = 5;
             pCtx.lineJoin = 'round';
             
             let lx, ly;
             prices.forEach((p, i) => {
-                lx = i * (pc.width / (prices.length-1));
+                lx = i * (pCanvas.width / (prices.length-1));
                 ly = getY(p);
                 if(i===0) pCtx.moveTo(lx, ly); else pCtx.lineTo(lx, ly);
             });
             pCtx.stroke();
-
-            // MICIO RIDER
-            pCtx.font = "50px Arial";
+            
+            // KITTY RIDER DYNAMIC
+            pCtx.font = "45px Arial";
             pCtx.textAlign = "right";
-            let emoji = mode === 'EXIT' ? "🐈" : (pnl > 0 ? "🤑" : "🙀");
-            pCtx.fillText(emoji, lx - 10, ly + 15);
+            let kitty = mode==='EXIT' ? "🐈" : (pnl > 0 ? "🤑" : "🙀");
+            pCtx.fillText(kitty, lx - 10, ly + 15);
         }
 
-        // 3. DRAW RSI CHART
-        rCtx.clearRect(0, 0, rc.width, rc.height);
-        // RSI Guide Lines
-        rCtx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-        rCtx.setLineDash([5, 5]);
-        [30, 70].forEach(level => {
-            let y = rc.height - (level/100 * rc.height);
-            rCtx.beginPath(); rCtx.moveTo(0, y); rCtx.lineTo(rc.width, y); rCtx.stroke();
-        });
-        rCtx.setLineDash([]);
-
+        // --- 3. RSI CHART ---
+        rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+        rCtx.strokeStyle = "rgba(255,255,255,0.1)";
+        rCtx.strokeRect(0, rCanvas.height*0.3, rCanvas.width, rCanvas.height*0.4);
+        
         if(rsiHistory.length > 1) {
             rCtx.beginPath();
-            rCtx.strokeStyle = varColor('--gold');
+            rCtx.strokeStyle = '#fbbf24';
             rCtx.lineWidth = 3;
             rsiHistory.forEach((r, i) => {
-                let x = i * (rc.width / (rsiHistory.length-1));
-                let y = rc.height - (r/100 * rc.height);
+                let x = i * (rCanvas.width / (rsiHistory.length-1));
+                let y = rCanvas.height - (r/100 * rCanvas.height);
                 if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             });
             rCtx.stroke();
@@ -379,37 +290,49 @@
         requestAnimationFrame(loop);
     }
 
-    function varColor(name) {
-        return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    }
-
     function initWS() {
-        // Bitget V2 WebSocket - Stabilen Endpoint
         const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
         
         ws.onopen = () => {
-            console.log("Bitget WS Connected");
             ws.send(JSON.stringify({
                 "op": "subscribe",
-                "args": [{
-                    "channel": "ticker",
-                    "instId": "BTCUSDT",
-                    "instType": "SPOT"
-                }]
+                "args": [{"channel": "ticker", "instId": "BTCUSDT", "instType": "SPOT"}]
             }));
         };
 
         ws.onmessage = (e) => {
-            const response = JSON.parse(e.data);
-            if (response.data && response.data[0]) {
-                updateLogic(parseFloat(response.data[0].lastPr));
+            const d = JSON.parse(e.data);
+            if(d.data && d.data[0]) {
+                const price = parseFloat(d.data[0].lastPr);
+                currentPrice = price;
+                
+                prices.push(price);
+                if(prices.length > 150) prices.shift();
+                
+                const rsi = calculateRSI(price);
+                rsiHistory.push(rsi);
+                if(rsiHistory.length > 150) rsiHistory.shift();
+                
+                if (mode !== 'EXIT') {
+                    let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
+                    let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
+                    pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
+                    
+                    if (pnl < -10) appContainer.classList.add('shaking');
+                    else appContainer.classList.remove('shaking');
+                }
+
+                // UI Updates
+                document.getElementById('price-txt').innerText = price.toFixed(2);
+                document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('rsi-digit').innerText = Math.round(rsi);
+                const pEl = document.getElementById('pnl-txt');
+                pEl.innerText = "P/L: $" + pnl.toFixed(2);
+                pEl.style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
             }
         };
 
-        ws.onclose = () => {
-            console.log("WS Closed. Reconnecting...");
-            setTimeout(initWS, 2000);
-        };
+        ws.onclose = () => setTimeout(initWS, 1000);
     }
 </script>
 </body>
