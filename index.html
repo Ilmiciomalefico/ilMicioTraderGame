@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Smart RSI Fallback v32</title>
+    <title>ilMicioTrader - Rider Logic v33</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -104,8 +104,8 @@
     let tunnelPhase = 0, isGameOver = false;
 
     const texts = {
-        en: { intro: "<p>• 1m RSI Logic (14 Period)<br>• Smart OHLC Fallback<br>• Trippy Perspective Tunnel<br>• Real Bitget Data</p>", start: "START ENGINE" },
-        sl: { intro: "<p>• 1m RSI Logika (14 period)<br>• Pametni OHLC Fallback<br>• Trippy Perspektivni Tunel<br>• Realni Bitget Podatki</p>", start: "ZAGREBI SISTEM" }
+        en: { intro: "<p>• 1m RSI Logic (14 Period)<br>• Dynamic Rider Tracking<br>• Trippy Perspective Tunnel<br>• Real Bitget Data</p>", start: "START ENGINE" },
+        sl: { intro: "<p>• 1m RSI Logika (14 period)<br>• Dinamično sledenje jezdeca<br>• Trippy Perspektivni Tunel<br>• Realni Bitget Podatki</p>", start: "ZAGREBI SISTEM" }
     };
 
     function setLang(l) {
@@ -126,20 +126,13 @@
 
     async function fetchHistory() {
         try {
-            // Poskusimo dobiti zadnjih 100 minutnih svečk (V2 API)
             const resp = await fetch('https://api.bitget.com/api/v2/spot/market/history-candles?instId=BTCUSDT&granularity=1min&limit=100');
             const res = await resp.json();
             if (res.data && res.data.length > 0) {
-                candles = res.data.map(d => ({
-                    time: parseInt(d[0]),
-                    close: parseFloat(d[4])
-                })).reverse();
+                candles = res.data.map(d => ({ time: parseInt(d[0]), close: parseFloat(d[4]) })).reverse();
                 document.getElementById('rsi-status').innerText = "API LIVE";
-            } else {
-                throw new Error("No data");
             }
         } catch (e) { 
-            console.warn("API Fail, entering OHLC Build Mode.");
             document.getElementById('rsi-status').innerText = "SYNCING OHLC...";
         }
     }
@@ -161,37 +154,26 @@
     }
 
     function getSmoothRSI(latestPrice) {
-        // Če še nimava dovolj svečk, uporabiva do sedaj zbrane podatke
         let history = candles.map(c => c.close);
         if (history.length === 0 && prices.length > 1) {
-            // Popoln fallback: če API ni vrnil nič, vzamemo zadnjih 14 "psevdo" svečk iz live cen
             history = prices.filter((_, i) => i % 60 === 0).slice(-14);
         }
-        
         history.push(latestPrice);
-        
         if (history.length < 2) return 50;
-
         let gains = 0, losses = 0;
-        // Izračunamo razlike (uporabimo zadnjih 14 sprememb)
         let lookback = Math.min(history.length - 1, 14);
         for (let i = history.length - lookback; i < history.length; i++) {
             let diff = history[i] - history[i-1];
             if (diff >= 0) gains += diff; else losses += Math.abs(diff);
         }
-        
-        let avgGain = gains / 14;
-        let avgLoss = losses / 14;
-        
+        let avgGain = gains / 14, avgLoss = losses / 14;
         if (avgLoss === 0) return 100;
-        let rs = avgGain / avgLoss;
-        return 100 - (100 / (1 + rs));
+        return 100 - (100 / (1 + (avgGain / avgLoss)));
     }
 
     function update(price) {
         if (isGameOver) return;
         if (!currentPrice) currentPrice = price;
-        
         if (mode !== 'EXIT') {
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
@@ -203,13 +185,10 @@
                 bBody.classList.remove('shake');
             }
         }
-        
         currentPrice = price;
-        prices.push(price); if (prices.length > 300) prices.shift();
+        prices.push(price); if (prices.length > 200) prices.shift();
         
-        // Upravljanje svečk (OHLC Build)
-        const now = Date.now();
-        const minTs = Math.floor(now / 60000) * 60000;
+        const now = Date.now(), minTs = Math.floor(now / 60000) * 60000;
         if (!currentCandle || currentCandle.time !== minTs) {
             if (currentCandle) {
                 candles.push({...currentCandle});
@@ -221,7 +200,7 @@
         currentCandle.close = price;
 
         let rsi = getSmoothRSI(price);
-        rsiHistory.push(rsi); if (rsiHistory.length > 300) rsiHistory.shift();
+        rsiHistory.push(rsi); if (rsiHistory.length > 200) rsiHistory.shift();
 
         document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toFixed(2);
         document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
@@ -238,8 +217,7 @@
         tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.1);
         const centerX = w / 2, centerY = h / 2;
         for(let i = 0; i < 12; i++) {
-            let progress = (i + tunnelPhase) / 12;
-            let lp = progress % 1;
+            let progress = (i + tunnelPhase) / 12, lp = progress % 1;
             let size = Math.pow(lp, 3) * Math.max(w, h) * 1.5;
             bgCtx.strokeStyle = `rgba(0, 255, 136, ${Math.sin(lp * Math.PI) * 0.2})`;
             bgCtx.lineWidth = 2 + lp * 10;
@@ -252,21 +230,38 @@
         pCtx.clearRect(0,0,pw,ph);
         if(prices.length > 2) {
             const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
-            const getY = (v) => ph - ((v-min)/range * (ph*0.5) + ph*0.25);
+            const getY = (v) => ph - ((v-min)/range * (ph*0.6) + ph*0.2);
+            
+            // Grafe fiksiramo na 75% širine zaslona
+            const riderX = pw * 0.75;
+            
             pCtx.beginPath();
             pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#475569');
-            pCtx.lineWidth = 5;
-            let lx, ly;
-            prices.forEach((p, i) => { lx = i * (pw / (prices.length-1)); ly = getY(p); if(i===0) pCtx.moveTo(lx, ly); else pCtx.lineTo(lx, ly); });
+            pCtx.lineWidth = 6;
+            pCtx.lineJoin = 'round';
+            pCtx.lineCap = 'round';
+
+            let lastX, lastY;
+            prices.forEach((p, i) => {
+                // Točka i=zadnja je na riderX, ostale so levo od nje
+                let x = riderX - (prices.length - 1 - i) * (pw / 150); 
+                let y = getY(p);
+                if(i === 0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
+                if(i === prices.length - 1) { lastX = x; lastY = y; }
+            });
             pCtx.stroke();
-            pCtx.font = "45px Arial"; pCtx.textAlign = "right";
-            pCtx.fillText(mode==='EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀"), lx - 50, ly + 15);
+
+            // Rider (Maček) na zadnji točki
+            pCtx.font = "50px Arial";
+            pCtx.textAlign = "center";
+            pCtx.textBaseline = "middle";
+            let micio = mode === 'EXIT' ? "🐈" : (pnl >= 0 ? "🤑" : "🙀");
+            pCtx.fillText(micio, lastX, lastY - 10);
         }
 
         const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
         rCtx.clearRect(0,0,rw,rh);
         rCtx.strokeStyle = "rgba(255,180,0,0.15)";
-        rCtx.lineWidth = 1;
         rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke();
         rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
         
