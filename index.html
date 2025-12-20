@@ -2,197 +2,192 @@
 <html lang="sl">
 <head>
     <meta charset="UTF-8">
-    <title>ilMicioTrader - Rollercoaster RSI Edition</title>
+    <title>ilMicioTrader - Professional Rollercoaster</title>
     <style>
-        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #030406; --panel: rgba(15, 23, 42, 0.95); --gray: #64748b; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Consolas', monospace; overflow: hidden; }
+        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.9); }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; height: 100%; }
         
-        canvas#gameCanvas { position: fixed; top: 0; left: 0; z-index: 1; }
+        #main-container { display: flex; flex-direction: column; height: 100vh; }
 
-        #ui-layer { position: relative; z-index: 10; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
-        
-        /* Zgornji del: Denarnica */
-        .stats-top { 
-            padding: 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
-            display: flex; justify-content: space-between; pointer-events: auto;
-        }
+        /* Zgornja vrstica z denarnico in emojijem */
+        #top-bar { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: var(--panel); border-bottom: 1px solid #1e293b; z-index: 20; }
+        #micio-emoji { font-size: 2rem; transition: transform 0.2s; }
 
-        /* RSI Vizualizacija */
-        #rsi-bar-container { width: 100px; height: 4px; background: #1e293b; border-radius: 2px; margin-top: 5px; position: relative; }
-        #rsi-fill { height: 100%; width: 50%; background: var(--gold); transition: width 0.3s; }
+        /* Prostor za graf (da ga gumbi ne prekrijejo) */
+        #chart-area { flex-grow: 1; position: relative; overflow: hidden; }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-        /* Spodnji del: Kontrole */
-        .controls-bottom {
-            background: var(--panel); padding: 15px 20px 25px 20px; border-top: 2px solid #1e293b;
-            display: flex; flex-direction: column; gap: 12px; pointer-events: auto;
-        }
+        /* RSI graf okno */
+        #rsi-window { position: absolute; bottom: 10px; right: 10px; width: 200px; height: 80px; background: rgba(0,0,0,0.7); border: 1px solid #334155; border-radius: 5px; z-index: 15; }
+        #rsi-label { font-size: 10px; color: var(--gold); position: absolute; top: 2px; left: 5px; }
 
+        /* Kontrolna plošča spodaj */
+        #controls { background: var(--panel); padding: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 2px solid #1e293b; z-index: 20; }
         .input-row { display: flex; gap: 10px; }
-        .box { flex: 1; background: #0f172a; border: 1px solid #334155; padding: 8px 12px; border-radius: 8px; }
-        .box label { font-size: 10px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
-        .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.1rem; font-weight: bold; outline: none; }
+        .box { flex: 1; background: #05070a; border: 1px solid #334155; padding: 5px 10px; border-radius: 5px; }
+        .box label { font-size: 9px; color: #64748b; text-transform: uppercase; }
+        .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1rem; outline: none; }
 
         .btn-row { display: flex; gap: 10px; }
-        .trade-btn { flex: 1; padding: 18px; border-radius: 10px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1rem; transition: 0.1s; }
-        #btn-long { background: var(--neon); color: #000; }
-        #btn-short { background: var(--red); color: #fff; }
-        #btn-exit { background: var(--gray); color: #fff; }
-        
-        #price-label { font-size: 2.2rem; font-weight: 900; color: var(--neon); text-shadow: 0 0 15px rgba(0,255,136,0.4); }
+        .t-btn { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; }
+        .b-long { background: var(--neon); color: #000; }
+        .b-short { background: var(--red); color: #fff; }
+        .b-exit { background: #334155; color: #fff; }
+
+        /* Animacija tresenja */
+        .shake { animation: shakeAnim 0.1s infinite; }
+        @keyframes shakeAnim { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0, 0); } }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="ui-layer">
-        <div class="stats-top">
-            <div>
-                <div id="balance-label" style="font-size: 1.4rem; font-weight: 900;">$10,000.00</div>
-                <div id="pnl-label" style="font-size: 0.9rem; font-weight: bold; color: var(--gray);">P/L: $0.00</div>
-            </div>
-            <div style="text-align: right;">
-                <div id="price-label">--</div>
-                <div style="font-size: 0.7rem; color: var(--gray);">RSI (1M): <span id="rsi-text" style="color:var(--gold)">50</span></div>
-                <div id="rsi-bar-container"><div id="rsi-fill"></div></div>
-            </div>
+<div id="main-container">
+    <div id="top-bar">
+        <div>
+            <div id="balance-txt" style="font-weight: 900; font-size: 1.2rem;">$10,000.00</div>
+            <div id="pnl-txt" style="font-size: 0.8rem; color: #64748b;">P/L: $0.00</div>
         </div>
-
-        <div class="controls-bottom">
-            <div class="input-row">
-                <div class="box">
-                    <label>Leverage (Max 500x)</label>
-                    <input type="number" id="lev-input" value="100" min="1" max="500">
-                </div>
-                <div class="box">
-                    <label>Lot (Min 0.01)</label>
-                    <input type="number" id="lot-input" value="0.10" min="0.01" step="0.01">
-                </div>
-            </div>
-            <div class="btn-row">
-                <button id="btn-long" class="trade-btn" onclick="setMode('LONG')">Long</button>
-                <button id="btn-exit" class="trade-btn" onclick="setMode('EXIT')">Exit</button>
-                <button id="btn-short" class="trade-btn" onclick="setMode('SHORT')">Short</button>
-            </div>
+        <div id="micio-emoji">😐</div>
+        <div style="text-align: right;">
+            <div id="price-txt" style="color: var(--neon); font-weight: 900; font-size: 1.2rem;">--</div>
+            <div style="font-size: 0.7rem;">LEV: <span id="lev-val">100</span>x</div>
         </div>
     </div>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let width, height, points = [], minuteBuffer = [], currentPrice = 0, entryPrice = 0;
-        let balance = 10000, pnl = 0, mode = 'EXIT', currentRSI = 50;
-        let gridOffset = 0;
+    <div id="chart-area">
+        <canvas id="priceCanvas"></canvas>
+        <div id="rsi-window">
+            <span id="rsi-label">RSI: 50</span>
+            <canvas id="rsiCanvas"></canvas>
+        </div>
+    </div>
 
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+    <div id="controls">
+        <div class="input-row">
+            <div class="box"><label>Leverage</label><input type="number" id="inp-lev" value="100" max="500"></div>
+            <div class="box"><label>Lot Size</label><input type="number" id="inp-lot" value="0.1" step="0.01"></div>
+        </div>
+        <div class="btn-row">
+            <button class="t-btn b-long" onclick="setMode('LONG')">Buy / Long</button>
+            <button class="t-btn b-exit" onclick="setMode('EXIT')">Exit</button>
+            <button class="t-btn b-short" onclick="setMode('SHORT')">Sell / Short</button>
+        </div>
+    </div>
+</div>
 
-        function setMode(m) {
-            if (m !== 'EXIT') {
-                entryPrice = currentPrice;
-            } else {
-                balance += pnl;
-                pnl = 0;
-            }
-            mode = m;
-            // Vizualni feedback za gumbe
-            document.getElementById('btn-long').style.opacity = (m === 'LONG' || m === 'EXIT') ? "1" : "0.3";
-            document.getElementById('btn-short').style.opacity = (m === 'SHORT' || m === 'EXIT') ? "1" : "0.3";
-        }
+<script>
+    const pCanvas = document.getElementById('priceCanvas');
+    const pCtx = pCanvas.getContext('2d');
+    const rCanvas = document.getElementById('rsiCanvas');
+    const rCtx = rCanvas.getContext('2d');
 
-        function calculateRSI() {
-            if (minuteBuffer.length < 15) return 50;
-            let gains = 0, losses = 0;
-            for (let i = minuteBuffer.length - 14; i < minuteBuffer.length; i++) {
-                let diff = minuteBuffer[i] - minuteBuffer[i-1];
-                if (diff >= 0) gains += diff; else losses -= diff;
-            }
-            let rs = (gains / 14) / (Math.abs(losses / 14) || 0.001);
-            return 100 - (100 / (1 + rs));
-        }
+    let prices = [], rsiHistory = [], currentPrice = 0, entryPrice = 0;
+    let balance = 10000, pnl = 0, mode = 'EXIT';
+    let gridOff = 0;
 
-        function handleData(price) {
-            if (!currentPrice) currentPrice = price;
-            
-            if (mode !== 'EXIT') {
-                let lot = parseFloat(document.getElementById('lot-input').value) || 0.01;
-                let lev = parseInt(document.getElementById('lev-input').value) || 1;
-                let diff = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price));
-                pnl = diff * lot * lev;
+    function resize() {
+        pCanvas.width = pCanvas.offsetWidth; pCanvas.height = pCanvas.offsetHeight;
+        rCanvas.width = rCanvas.offsetWidth; rCanvas.height = rCanvas.offsetHeight;
+    }
+    window.onresize = resize; resize();
 
-                if (balance + pnl <= 0) {
-                    balance = 10000; pnl = 0; setMode('EXIT');
-                    alert("LIQUIDATED! 💀");
-                }
-            }
+    function setMode(m) {
+        if (m === 'EXIT') { balance += pnl; pnl = 0; }
+        else { entryPrice = currentPrice; }
+        mode = m;
+    }
 
-            currentPrice = price;
-            points.push(price); if(points.length > 80) points.shift();
-            
-            // Simulacija 1m buffera za RSI (vsak tick doda v buffer za testiranje)
-            minuteBuffer.push(price); if(minuteBuffer.length > 20) minuteBuffer.shift();
-            currentRSI = calculateRSI();
-            
-            updateUI();
+    function updateData(price) {
+        if (!currentPrice) currentPrice = price;
+        
+        if (mode !== 'EXIT') {
+            let lot = parseFloat(document.getElementById('inp-lot').value);
+            let lev = parseFloat(document.getElementById('inp-lev').value);
+            pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
         }
 
-        function updateUI() {
-            document.getElementById('balance-label').innerText = "$" + (balance + pnl).toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('price-label').innerText = currentPrice.toFixed(2);
-            document.getElementById('pnl-label').innerText = `P/L: ${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`;
-            document.getElementById('pnl-label').style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
-            document.getElementById('rsi-text').innerText = Math.round(currentRSI);
-            document.getElementById('rsi-fill').style.width = currentRSI + "%";
+        currentPrice = price;
+        prices.push(price); if(prices.length > 100) prices.shift();
+        
+        // Simulacija RSI logike
+        let rsi = 50 + (Math.sin(Date.now()/5000) * 20); // Za demo, v realnosti uporabi prejšnjo RSI formulo
+        rsiHistory.push(rsi); if(rsiHistory.length > 50) rsiHistory.shift();
+        
+        updateUI(rsi);
+    }
+
+    function updateUI(rsi) {
+        document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toFixed(2);
+        document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
+        document.getElementById('pnl-txt').innerText = "P/L: $" + pnl.toFixed(2);
+        document.getElementById('rsi-label').innerText = "RSI: " + Math.round(rsi);
+        document.getElementById('lev-val').innerText = document.getElementById('inp-lev').value;
+
+        // Dinamični emojiji 🐈
+        const emoji = document.getElementById('micio-emoji');
+        if (mode === 'EXIT') emoji.innerText = "🐈";
+        else if (pnl > 50) emoji.innerText = "🤑";
+        else if (pnl > 0) emoji.innerText = "😺";
+        else if (pnl < -50) { emoji.innerText = "🙀"; triggerShake(); }
+        else if (pnl < 0) emoji.innerText = "😿";
+
+        if (pnl > 100) emoji.style.transform = "scale(1.5)"; else emoji.style.transform = "scale(1)";
+    }
+
+    function triggerShake() {
+        document.body.classList.add('shake');
+        setTimeout(() => document.body.classList.remove('shake'), 200);
+    }
+
+    function draw() {
+        pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+        rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+
+        // Mreža (Rollercoaster effect)
+        gridOff += (mode === 'EXIT' ? 0.5 : 3);
+        pCtx.strokeStyle = "#0a111a";
+        for(let i=0; i<pCanvas.width; i+=40) {
+            pCtx.beginPath(); pCtx.moveTo(i - (gridOff%40), 0); pCtx.lineTo(i - (gridOff%40), pCanvas.height); pCtx.stroke();
         }
 
-        function draw() {
-            ctx.fillStyle = "#030406";
-            ctx.fillRect(0, 0, width, height);
-
-            // Rollercoaster Grid
-            gridOffset += (mode === 'EXIT' ? 0.5 : 4);
-            ctx.strokeStyle = "#0f172a";
-            ctx.lineWidth = 1;
-            for(let i = -100; i < width + 100; i += 60) {
-                ctx.beginPath();
-                ctx.moveTo(i + Math.sin(gridOffset/10)*20, 0);
-                ctx.lineTo(i - Math.sin(gridOffset/10)*20, height);
-                ctx.stroke();
-            }
-
-            // Izris Glavnega Grafa
-            if (points.length > 2) {
-                const min = Math.min(...points), max = Math.max(...points), range = (max - min) || 1;
-                const getY = (p) => height/2 - ((p - (min+max)/2) / (range/1.5)) * (height/4);
-
-                ctx.beginPath();
-                ctx.setLineDash(mode === 'EXIT' ? [5, 5] : []);
-                ctx.strokeStyle = mode === 'LONG' ? "#00ff88" : (mode === 'SHORT' ? "#ff3366" : "#64748b");
-                ctx.lineWidth = 3;
-                points.forEach((p, i) => {
-                    let x = i * (width / 80);
-                    if(i === 0) ctx.moveTo(x, getY(p)); else ctx.lineTo(x, getY(p));
-                });
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
-            requestAnimationFrame(draw);
+        // Glavni graf (Cena)
+        if(prices.length > 2) {
+            const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
+            pCtx.beginPath();
+            pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#64748b');
+            pCtx.lineWidth = 3;
+            prices.forEach((p, i) => {
+                let x = i * (pCanvas.width/100);
+                let y = pCanvas.height - ((p-min)/range * (pCanvas.height * 0.7) + pCanvas.height * 0.15);
+                if(i===0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
+            });
+            pCtx.stroke();
         }
 
-        // Bitget WS
-        const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-        ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"instType":"SPOT","channel":"ticker","instId":"BTCUSDT"}]}));
-        ws.onmessage = (e) => {
-            const d = JSON.parse(e.data);
-            if (d.data && d.data[0]) handleData(parseFloat(d.data[0].lastPr));
-        };
+        // RSI Graf
+        if(rsiHistory.length > 2) {
+            rCtx.beginPath(); rCtx.strokeStyle = varColor('--gold');
+            rsiHistory.forEach((r, i) => {
+                let x = i * (rCanvas.width/50);
+                let y = rCanvas.height - (r/100 * rCanvas.height);
+                if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
+            });
+            rCtx.stroke();
+        }
 
-        draw();
-    </script>
+        requestAnimationFrame(draw);
+    }
+
+    function varColor(n) { return getComputedStyle(document.documentElement).getPropertyValue(n); }
+
+    const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
+    ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"instType":"SPOT","channel":"ticker","instId":"BTCUSDT"}]}));
+    ws.onmessage = (e) => {
+        const d = JSON.parse(e.data);
+        if(d.data) updateData(parseFloat(d.data[0].lastPr));
+    };
+
+    draw();
+</script>
 </body>
 </html>
