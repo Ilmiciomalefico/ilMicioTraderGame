@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Open Source Community Edition v15</title>
+    <title>ilMicioTrader - FULL STACK v16</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -11,53 +11,54 @@
         
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
         
-        /* Start Screen - Tvoj Intro */
         #start-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 40px rgba(0,255,136,0.15); }
+        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0,255,136,0.2); }
 
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; }
 
         #price-section { flex: 3; position: relative; overflow: hidden; }
-        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.6); border-top: 2px solid rgba(255,255,255,0.1); }
+        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.7); border-top: 2px solid rgba(255,255,255,0.1); }
         #controls { flex: 0 0 auto; background: var(--panel); padding: 15px; border-top: 3px solid #334155; }
 
         .overlay { position: absolute; padding: 15px; z-index: 10; pointer-events: none; width: 100%; display: flex; justify-content: space-between; }
         #balance-txt { font-size: 1.5rem; font-weight: 900; }
-        #price-txt { font-size: 1.7rem; font-weight: 900; color: var(--neon); }
+        #price-txt { font-size: 1.8rem; font-weight: 900; color: var(--neon); text-shadow: 0 0 15px var(--neon); }
 
         .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .box { flex: 1; background: #000; border: 1px solid #334155; padding: 8px; border-radius: 6px; }
         .box label { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; }
         .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.1rem; outline: none; font-weight: bold; }
 
-        .btn-row { display: flex; gap: 10px; height: 60px; }
-        .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1rem; transition: transform 0.1s; }
-        .b-long { background: var(--neon); color: #000; }
-        .b-short { background: var(--red); color: #fff; }
-        .b-exit { background: #334155; color: #fff; }
-        .t-btn:active { transform: scale(0.98); }
+        .btn-row { display: flex; gap: 10px; height: 65px; }
+        .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1.1rem; }
+        .b-long { background: var(--neon); color: #000; box-shadow: 0 4px 0 #00cc6a; }
+        .b-short { background: var(--red); color: #fff; box-shadow: 0 4px 0 #cc2952; }
+        .b-exit { background: #334155; color: #fff; box-shadow: 0 4px 0 #1e293b; }
+        .t-btn:active { transform: translateY(4px); box-shadow: none; }
 
         .lang-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 15px; border-radius: 5px; margin: 5px; cursor: pointer; }
         .lang-btn.active { border-color: var(--neon); color: var(--neon); }
         
         canvas { display: block; width: 100%; height: 100%; }
+        
+        /* SHAKE ANIMATION */
+        .shake { animation: shake 0.15s cubic-bezier(.36,.07,.19,.97) infinite; transform: translate3d(0, 0, 0); }
+        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } 40%, 60% { transform: translate3d(6px, 0, 0); } }
     </style>
 </head>
-<body>
+<body id="main-body">
 
 <canvas id="bg-canvas"></canvas>
 
 <div id="start-screen">
     <div class="panel">
-        <h1 style="color: var(--neon); margin: 0; font-size: 2.2rem; letter-spacing: -1px;">🐈 ilMicioTrader</h1>
+        <h1 style="color: var(--neon); margin: 0; font-size: 2.2rem;">🐈 ilMicioTrader</h1>
         <div style="margin: 20px 0;">
-            <button class="lang-btn active" id="btn-en" onclick="setLang('en')">🇬🇧 ENGLISH</button>
-            <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">🇸🇮 SLOVENŠČINA</button>
+            <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+            <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">SI</button>
         </div>
-        <div id="intro-text" style="text-align: left; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 20px 0; padding-top: 20px; line-height: 1.6;">
-        </div>
-        <button class="t-btn b-long" style="width: 100%; padding: 18px;" onclick="startGame()" id="start-btn">INITIALIZE</button>
-        <p style="font-size: 10px; color: #475569; margin-top: 15px; text-transform: uppercase;">Open Source Community Project</p>
+        <div id="intro-text" style="text-align: left; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 15px 0; padding-top: 15px;"></div>
+        <button class="t-btn b-long" style="width: 100%;" onclick="startGame()" id="start-btn">START</button>
     </div>
 </div>
 
@@ -75,12 +76,10 @@
         </div>
         <canvas id="priceCanvas"></canvas>
     </div>
-
     <div id="rsi-section">
-        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">RSI (14M SCALE | 1S LIVE UPDATE)</div>
+        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">1M RSI | 1S LIVE</div>
         <canvas id="rsiCanvas"></canvas>
     </div>
-
     <div id="controls">
         <div class="input-row">
             <div class="box"><label>Leverage</label><input type="number" id="inp-lev" value="500"></div>
@@ -95,6 +94,7 @@
 </div>
 
 <script>
+    const bBody = document.getElementById('main-body');
     const bgCtx = document.getElementById('bg-canvas').getContext('2d');
     const pCtx = document.getElementById('priceCanvas').getContext('2d');
     const rCtx = document.getElementById('rsiCanvas').getContext('2d');
@@ -104,14 +104,8 @@
     let tunnelPhase = 0;
 
     const texts = {
-        en: { 
-            intro: "<strong>Community Project:</strong> This is a high-precision trading simulator using real Bitget WebSocket data. <br><br> • <strong>RSI 1M:</strong> Calculated on a 14-minute window, updated every second. <br> • <strong>Zero Lag:</strong> High-performance 60fps rendering. <br> • <strong>Open Source:</strong> Made for the community.", 
-            start: "LAUNCH TERMINAL" 
-        },
-        sl: { 
-            intro: "<strong>Skupnostni Projekt:</strong> Visoko-natančen simulator trgovanja z realnimi podatki Bitget borze. <br><br> • <strong>RSI 1M:</strong> Izračunan na 14-minutnem oknu, osvežen vsako sekundo. <br> • <strong>Brez zamika:</strong> Hitro 60fps upodabljanje grafov. <br> • <strong>Open Source:</strong> Narejeno za skupnost.", 
-            start: "ZAGREBI SISTEM" 
-        }
+        en: { intro: "<p>• 1m RSI Timeframe (1s Live)<br>• Dynamic Micio Rider<br>• Trippy Tunnel Effect<br>• Real Bitget Data</p>", start: "START" },
+        sl: { intro: "<p>• 1m RSI Skala (1s Live)<br>• Dinamični Maček Rider<br>• Trippy Tunel Efekt<br>• Realni Bitget Podatki</p>", start: "ZAGREBI" }
     };
 
     function setLang(l) {
@@ -123,7 +117,10 @@
     setLang('sl');
 
     function resize() {
-        [bgCtx.canvas, pCtx.canvas, rCtx.canvas].forEach(c => { c.width = c.clientWidth; c.height = c.clientHeight; });
+        [bgCtx, pCtx, rCtx].forEach(ctx => {
+            ctx.canvas.width = ctx.canvas.clientWidth;
+            ctx.canvas.height = ctx.canvas.clientHeight;
+        });
     }
     window.addEventListener('resize', resize);
     resize();
@@ -135,37 +132,28 @@
     }
 
     function setMode(m) {
-        if (m === 'EXIT') { balance += pnl; pnl = 0; }
+        if (m === 'EXIT') { balance += pnl; pnl = 0; bBody.classList.remove('shake'); }
         else { entryPrice = currentPrice; }
         mode = m;
     }
 
-    // NATANČNA RSI LOGIKA: 1m skala, osveževanje na 1s
     function updateRSI(price) {
         const now = Date.now();
         const minTs = Math.floor(now / 60000) * 60000;
-        
         if (!currentCandle || currentCandle.time !== minTs) {
             if (currentCandle) candles.push({...currentCandle});
             currentCandle = { time: minTs, open: price, close: price };
             if (candles.length > 20) candles.shift();
         }
         currentCandle.close = price;
-
         if (candles.length < 14) return 50;
-
-        // Vzamemo zadnjih 13 minutnih zapiranj + trenutno aktivno sekundo v minuti
-        let historyCloses = candles.slice(-13).map(c => c.close);
-        let allCloses = historyCloses.concat(currentCandle.close);
-        
-        let gains = 0, losses = 0;
-        for (let i = 1; i < allCloses.length; i++) {
-            let diff = allCloses[i] - allCloses[i-1];
-            if (diff >= 0) gains += diff; else losses += Math.abs(diff);
+        let all = candles.slice(-13).map(c => c.close).concat(currentCandle.close);
+        let g = 0, l = 0;
+        for (let i = 1; i < all.length; i++) {
+            let d = all[i] - all[i-1];
+            if (d >= 0) g += d; else l += Math.abs(d);
         }
-        
-        let rs = (gains / 14) / ((losses / 14) || 0.001);
-        return 100 - (100 / (1 + rs));
+        return 100 - (100 / (1 + ((g/14)/((l/14)||0.0001))));
     }
 
     function update(price) {
@@ -174,12 +162,12 @@
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
             pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
+            if (pnl < -50) bBody.classList.add('shake'); else bBody.classList.remove('shake');
         }
         currentPrice = price;
-        prices.push(price); if (prices.length > 250) prices.shift();
-        
+        prices.push(price); if (prices.length > 200) prices.shift();
         let rsi = updateRSI(price);
-        rsiHistory.push(rsi); if (rsiHistory.length > 250) rsiHistory.shift();
+        rsiHistory.push(rsi); if (rsiHistory.length > 200) rsiHistory.shift();
 
         document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toFixed(2);
         document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
@@ -190,45 +178,45 @@
     }
 
     function loop() {
+        // 1. Tunel efekt v ozadju
         const w = bgCtx.canvas.width, h = bgCtx.canvas.height;
         bgCtx.fillStyle = '#010204'; bgCtx.fillRect(0,0,w,h);
-        tunnelPhase += (mode === 'EXIT' ? 0.01 : 0.06);
+        tunnelPhase += (mode === 'EXIT' ? 0.01 : 0.08);
         for(let i=0; i<15; i++) {
             let s = ((i + tunnelPhase) % 15) * (w/10);
-            bgCtx.strokeStyle = `rgba(0, 255, 136, ${0.12 - s/w})`;
-            bgCtx.beginPath(); bgCtx.roundRect(w/2 - s/2, h/2 - s/2, s, s, s*0.2); bgCtx.stroke();
+            bgCtx.strokeStyle = `rgba(0, 255, 136, ${0.15 - s/w})`;
+            bgCtx.lineWidth = 2;
+            bgCtx.beginPath(); bgCtx.roundRect(w/2 - s/2, h/2 - s/2, s, s, s*0.1); bgCtx.stroke();
         }
 
+        // 2. BTC Price Chart
         const pw = pCtx.canvas.width, ph = pCtx.canvas.height;
         pCtx.clearRect(0,0,pw,ph);
         if(prices.length > 2) {
             const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
-            // 30% padding zgoraj/spodaj, da emotikon vedno ostane na ekranu
             const getY = (v) => ph - ((v-min)/range * (ph*0.4) + ph*0.3);
-            
             pCtx.beginPath();
             pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#475569');
-            pCtx.lineWidth = 4;
+            pCtx.lineWidth = 5;
             let lx, ly;
             prices.forEach((p, i) => {
                 lx = i * (pw / (prices.length-1)); ly = getY(p);
                 if(i===0) pCtx.moveTo(lx, ly); else pCtx.lineTo(lx, ly);
             });
             pCtx.stroke();
-            
-            // Emoji Rider - Pametno sledenje
-            pCtx.font = "42px Arial"; pCtx.textAlign = "right";
-            let emoji = mode === 'EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀");
-            pCtx.fillText(emoji, lx - 10, ly);
+            // Rider
+            pCtx.font = "45px Arial"; pCtx.textAlign = "right";
+            pCtx.fillText(mode==='EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀"), lx-10, ly);
         }
 
+        // 3. RSI Chart
         const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
         rCtx.clearRect(0,0,rw,rh);
         rCtx.strokeStyle = "rgba(255,255,255,0.1)";
         rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke();
         rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
         if(rsiHistory.length > 1) {
-            rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 3;
+            rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 4;
             rsiHistory.forEach((r, i) => {
                 let x = i * (rw / (rsiHistory.length-1));
                 let y = rh - (r/100 * rh);
