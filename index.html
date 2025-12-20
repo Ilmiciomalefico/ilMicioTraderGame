@@ -2,75 +2,68 @@
 <html lang="sl">
 <head>
     <meta charset="UTF-8">
-    <title>ilMicioTrader - Professional Rollercoaster</title>
+    <title>ilMicioTrader - Ultimate Rollercoaster</title>
     <style>
-        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.9); }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden; height: 100%; }
+        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.95); }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Consolas', monospace; overflow: hidden; height: 100%; }
         
-        #main-container { display: flex; flex-direction: column; height: 100vh; }
+        #top-bar { height: 70px; display: flex; justify-content: space-between; align-items: center; padding: 0 25px; background: var(--panel); border-bottom: 2px solid #1e293b; position: relative; z-index: 30; }
+        
+        #chart-container { position: relative; flex-grow: 1; height: calc(100vh - 220px); }
+        canvas { display: block; width: 100%; height: 100%; }
 
-        /* Zgornja vrstica z denarnico in emojijem */
-        #top-bar { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: var(--panel); border-bottom: 1px solid #1e293b; z-index: 20; }
-        #micio-emoji { font-size: 2rem; transition: transform 0.2s; }
+        /* RSI Sub-chart Area */
+        #rsi-area { height: 80px; background: rgba(0,0,0,0.5); border-top: 1px solid #1e293b; position: relative; }
+        #rsi-label { position: absolute; left: 10px; top: 5px; font-size: 10px; color: var(--gold); z-index: 5; }
 
-        /* Prostor za graf (da ga gumbi ne prekrijejo) */
-        #chart-area { flex-grow: 1; position: relative; overflow: hidden; }
-        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-        /* RSI graf okno */
-        #rsi-window { position: absolute; bottom: 10px; right: 10px; width: 200px; height: 80px; background: rgba(0,0,0,0.7); border: 1px solid #334155; border-radius: 5px; z-index: 15; }
-        #rsi-label { font-size: 10px; color: var(--gold); position: absolute; top: 2px; left: 5px; }
-
-        /* Kontrolna plošča spodaj */
-        #controls { background: var(--panel); padding: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 2px solid #1e293b; z-index: 20; }
+        #controls { height: 150px; background: var(--panel); padding: 15px; display: flex; flex-direction: column; gap: 10px; border-top: 2px solid #334155; position: relative; z-index: 30; }
         .input-row { display: flex; gap: 10px; }
-        .box { flex: 1; background: #05070a; border: 1px solid #334155; padding: 5px 10px; border-radius: 5px; }
-        .box label { font-size: 9px; color: #64748b; text-transform: uppercase; }
-        .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1rem; outline: none; }
+        .box { flex: 1; background: #05070a; border: 1px solid #334155; padding: 8px; border-radius: 6px; }
+        .box label { font-size: 9px; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.1rem; font-weight: bold; outline: none; }
 
         .btn-row { display: flex; gap: 10px; }
-        .t-btn { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; }
-        .b-long { background: var(--neon); color: #000; }
-        .b-short { background: var(--red); color: #fff; }
+        .t-btn { flex: 1; padding: 18px; border-radius: 10px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1rem; transition: 0.1s; }
+        .b-long { background: var(--neon); color: #000; box-shadow: 0 0 15px rgba(0,255,136,0.2); }
+        .b-short { background: var(--red); color: #fff; box-shadow: 0 0 15px rgba(255,51,102,0.2); }
         .b-exit { background: #334155; color: #fff; }
 
-        /* Animacija tresenja */
-        .shake { animation: shakeAnim 0.1s infinite; }
-        @keyframes shakeAnim { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0, 0); } }
+        .shake { animation: shake 0.1s infinite; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0, 0); } }
     </style>
 </head>
 <body>
 
-<div id="main-container">
+<div style="display: flex; flex-direction: column; height: 100vh;">
     <div id="top-bar">
         <div>
-            <div id="balance-txt" style="font-weight: 900; font-size: 1.2rem;">$10,000.00</div>
-            <div id="pnl-txt" style="font-size: 0.8rem; color: #64748b;">P/L: $0.00</div>
+            <div id="balance-txt" style="font-weight: 900; font-size: 1.4rem;">$10,000.00</div>
+            <div id="pnl-txt" style="font-size: 1rem; color: #64748b; font-weight: bold;">P/L: $0.00</div>
         </div>
-        <div id="micio-emoji">😐</div>
         <div style="text-align: right;">
-            <div id="price-txt" style="color: var(--neon); font-weight: 900; font-size: 1.2rem;">--</div>
-            <div style="font-size: 0.7rem;">LEV: <span id="lev-val">100</span>x</div>
+            <div id="price-txt" style="color: var(--neon); font-weight: 900; font-size: 1.6rem;">--</div>
+            <div style="font-size: 0.8rem; color: var(--gold);">LEVERAGE: <span id="lev-display">100</span>x</div>
         </div>
     </div>
 
-    <div id="chart-area">
+    <div id="chart-container">
         <canvas id="priceCanvas"></canvas>
-        <div id="rsi-window">
-            <span id="rsi-label">RSI: 50</span>
-            <canvas id="rsiCanvas"></canvas>
-        </div>
+    </div>
+
+    <div id="rsi-area">
+        <div id="rsi-label">RSI (1M): <span id="rsi-val-txt">50</span></div>
+        <canvas id="rsiCanvas"></canvas>
     </div>
 
     <div id="controls">
         <div class="input-row">
-            <div class="box"><label>Leverage</label><input type="number" id="inp-lev" value="100" max="500"></div>
-            <div class="box"><label>Lot Size</label><input type="number" id="inp-lot" value="0.1" step="0.01"></div>
+            <div class="box"><label>Leverage (Max 500x)</label><input type="number" id="inp-lev" value="500" max="500"></div>
+            <div class="box"><label>Lot Size (Min 0.01)</label><input type="number" id="inp-lot" value="0.1" step="0.01"></div>
         </div>
         <div class="btn-row">
-            <button class="t-btn b-long" onclick="setMode('LONG')">Buy / Long</button>
-            <button class="t-btn b-exit" onclick="setMode('EXIT')">Exit</button>
-            <button class="t-btn b-short" onclick="setMode('SHORT')">Sell / Short</button>
+            <button class="t-btn b-long" onclick="setMode('LONG')">LONG</button>
+            <button class="t-btn b-exit" onclick="setMode('EXIT')">EXIT</button>
+            <button class="t-btn b-short" onclick="setMode('SHORT')">SHORT</button>
         </div>
     </div>
 </div>
@@ -82,12 +75,12 @@
     const rCtx = rCanvas.getContext('2d');
 
     let prices = [], rsiHistory = [], currentPrice = 0, entryPrice = 0;
-    let balance = 10000, pnl = 0, mode = 'EXIT';
-    let gridOff = 0;
+    let balance = 10000, pnl = 0, mode = 'EXIT', currentRSI = 50;
+    let gridOffset = 0;
 
     function resize() {
-        pCanvas.width = pCanvas.offsetWidth; pCanvas.height = pCanvas.offsetHeight;
-        rCanvas.width = rCanvas.offsetWidth; rCanvas.height = rCanvas.offsetHeight;
+        pCanvas.width = pCanvas.clientWidth; pCanvas.height = pCanvas.clientHeight;
+        rCanvas.width = rCanvas.clientWidth; rCanvas.height = rCanvas.clientHeight;
     }
     window.onresize = resize; resize();
 
@@ -97,80 +90,106 @@
         mode = m;
     }
 
-    function updateData(price) {
+    // RSI Kalkulacija
+    function calculateRSI(data) {
+        if (data.length < 14) return 50;
+        let gains = 0, losses = 0;
+        for (let i = data.length - 14; i < data.length; i++) {
+            let diff = data[i] - data[i-1];
+            if (diff >= 0) gains += diff; else losses -= diff;
+        }
+        let rs = (gains / 14) / (Math.abs(losses / 14) || 0.0001);
+        return 100 - (100 / (1 + rs));
+    }
+
+    function update(price) {
         if (!currentPrice) currentPrice = price;
         
         if (mode !== 'EXIT') {
-            let lot = parseFloat(document.getElementById('inp-lot').value);
-            let lev = parseFloat(document.getElementById('inp-lev').value);
+            let lot = parseFloat(document.getElementById('inp-lot').value) || 0.01;
+            let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
             pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
         }
 
         currentPrice = price;
         prices.push(price); if(prices.length > 100) prices.shift();
         
-        // Simulacija RSI logike
-        let rsi = 50 + (Math.sin(Date.now()/5000) * 20); // Za demo, v realnosti uporabi prejšnjo RSI formulo
-        rsiHistory.push(rsi); if(rsiHistory.length > 50) rsiHistory.shift();
-        
-        updateUI(rsi);
+        currentRSI = calculateRSI(prices);
+        rsiHistory.push(currentRSI); if(rsiHistory.length > 100) rsiHistory.shift();
+
+        updateUI();
     }
 
-    function updateUI(rsi) {
+    function updateUI() {
         document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toFixed(2);
         document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
         document.getElementById('pnl-txt').innerText = "P/L: $" + pnl.toFixed(2);
-        document.getElementById('rsi-label').innerText = "RSI: " + Math.round(rsi);
-        document.getElementById('lev-val').innerText = document.getElementById('inp-lev').value;
+        document.getElementById('pnl-txt').style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
+        document.getElementById('lev-display').innerText = document.getElementById('inp-lev').value;
+        document.getElementById('rsi-val-txt').innerText = Math.round(currentRSI);
 
-        // Dinamični emojiji 🐈
-        const emoji = document.getElementById('micio-emoji');
-        if (mode === 'EXIT') emoji.innerText = "🐈";
-        else if (pnl > 50) emoji.innerText = "🤑";
-        else if (pnl > 0) emoji.innerText = "😺";
-        else if (pnl < -50) { emoji.innerText = "🙀"; triggerShake(); }
-        else if (pnl < 0) emoji.innerText = "😿";
-
-        if (pnl > 100) emoji.style.transform = "scale(1.5)"; else emoji.style.transform = "scale(1)";
+        if (pnl < -100) document.body.classList.add('shake');
+        else document.body.classList.remove('shake');
     }
 
-    function triggerShake() {
-        document.body.classList.add('shake');
-        setTimeout(() => document.body.classList.remove('shake'), 200);
+    function getMicioEmoji() {
+        if (mode === 'EXIT') return "🐈";
+        if (pnl > 100) return "🤑";
+        if (pnl > 0) return "😺";
+        if (pnl < -100) return "🙀";
+        return "😿";
     }
 
     function draw() {
         pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
         rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
 
-        // Mreža (Rollercoaster effect)
-        gridOff += (mode === 'EXIT' ? 0.5 : 3);
-        pCtx.strokeStyle = "#0a111a";
-        for(let i=0; i<pCanvas.width; i+=40) {
-            pCtx.beginPath(); pCtx.moveTo(i - (gridOff%40), 0); pCtx.lineTo(i - (gridOff%40), pCanvas.height); pCtx.stroke();
-        }
-
-        // Glavni graf (Cena)
-        if(prices.length > 2) {
-            const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
+        // Rollercoaster Grid
+        gridOffset += (mode === 'EXIT' ? 0.5 : 5);
+        pCtx.strokeStyle = "#0d141f";
+        pCtx.lineWidth = 1;
+        for(let i = -100; i < pCanvas.width + 100; i += 50) {
             pCtx.beginPath();
-            pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#64748b');
-            pCtx.lineWidth = 3;
-            prices.forEach((p, i) => {
-                let x = i * (pCanvas.width/100);
-                let y = pCanvas.height - ((p-min)/range * (pCanvas.height * 0.7) + pCanvas.height * 0.15);
-                if(i===0) pCtx.moveTo(x, y); else pCtx.lineTo(x, y);
-            });
+            pCtx.moveTo(i - (gridOffset % 50), 0);
+            pCtx.lineTo(i - (gridOffset % 50), pCanvas.height);
             pCtx.stroke();
         }
 
+        // Glavni graf
+        if (prices.length > 2) {
+            const min = Math.min(...prices), max = Math.max(...prices), range = (max - min) || 1;
+            const getY = (v) => pCanvas.height - ((v - min) / range * (pCanvas.height * 0.6) + pCanvas.height * 0.2);
+
+            pCtx.beginPath();
+            pCtx.strokeStyle = mode === 'LONG' ? '#00ff88' : (mode === 'SHORT' ? '#ff3366' : '#475569');
+            pCtx.lineWidth = 4;
+            let lastX, lastY;
+
+            prices.forEach((p, i) => {
+                lastX = i * (pCanvas.width / 100);
+                lastY = getY(p);
+                if (i === 0) pCtx.moveTo(lastX, lastY); else pCtx.lineTo(lastX, lastY);
+            });
+            pCtx.stroke();
+
+            // DINAMIČNI EMOTIKON NA KONCU ČRTE
+            pCtx.font = "30px Arial";
+            pCtx.fillText(getMicioEmoji(), lastX - 15, lastY - 10);
+        }
+
         // RSI Graf
-        if(rsiHistory.length > 2) {
-            rCtx.beginPath(); rCtx.strokeStyle = varColor('--gold');
+        rCtx.strokeStyle = "rgba(251, 191, 36, 0.2)";
+        rCtx.beginPath(); rCtx.moveTo(0, rCanvas.height*0.3); rCtx.lineTo(rCanvas.width, rCanvas.height*0.3); rCtx.stroke(); // 70 line
+        rCtx.beginPath(); rCtx.moveTo(0, rCanvas.height*0.7); rCtx.lineTo(rCanvas.width, rCanvas.height*0.7); rCtx.stroke(); // 30 line
+
+        if (rsiHistory.length > 2) {
+            rCtx.beginPath();
+            rCtx.strokeStyle = "#fbbf24";
+            rCtx.lineWidth = 2;
             rsiHistory.forEach((r, i) => {
-                let x = i * (rCanvas.width/50);
-                let y = rCanvas.height - (r/100 * rCanvas.height);
-                if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
+                let x = i * (rCanvas.width / 100);
+                let y = rCanvas.height - (r / 100 * rCanvas.height);
+                if (i === 0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             });
             rCtx.stroke();
         }
@@ -178,13 +197,11 @@
         requestAnimationFrame(draw);
     }
 
-    function varColor(n) { return getComputedStyle(document.documentElement).getPropertyValue(n); }
-
     const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
     ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"instType":"SPOT","channel":"ticker","instId":"BTCUSDT"}]}));
     ws.onmessage = (e) => {
         const d = JSON.parse(e.data);
-        if(d.data) updateData(parseFloat(d.data[0].lastPr));
+        if (d.data && d.data[0]) update(parseFloat(d.data[0].lastPr));
     };
 
     draw();
