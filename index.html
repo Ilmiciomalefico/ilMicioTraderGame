@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Trippy Tunnel Edition v17</title>
+    <title>ilMicioTrader - Always-In Logic v28</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -11,7 +11,9 @@
         
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
         
-        #start-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #start-screen, #game-over { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        #game-over { display: none; z-index: 200; background: rgba(0,0,0,0.9); }
+        
         .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0,255,136,0.2); }
 
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; }
@@ -61,6 +63,14 @@
     </div>
 </div>
 
+<div id="game-over">
+    <div class="panel" style="border-color: var(--red);">
+        <h1 style="color: var(--red); font-size: 3rem;">REKT</h1>
+        <p>Tvoj balans je dosegel 0. Maček je lačen.</p>
+        <button class="t-btn b-short" style="width: 100%;" onclick="location.reload()">RESTART SYSTEM</button>
+    </div>
+</div>
+
 <div id="app-container">
     <div id="price-section">
         <div class="overlay">
@@ -101,6 +111,7 @@
     let prices = [], rsiHistory = [], candles = [];
     let currentCandle = null, currentPrice = 0, entryPrice = 0, balance = 10000, pnl = 0, mode = 'EXIT';
     let tunnelPhase = 0;
+    let isGameOver = false;
 
     const texts = {
         en: { intro: "<p>• 1m RSI Logic (1s Updates)<br>• Dynamic Micio Rider<br>• Trippy Perspective Tunnel<br>• Real Bitget WebSocket</p>", start: "START ENGINE" },
@@ -116,11 +127,12 @@
     setLang('sl');
 
     function resize() {
-        [bgCtx, pCtx, rCtx].forEach(ctx => {
-            ctx.canvas.width = window.innerWidth;
-            ctx.canvas.height = ctx.canvas.parentElement.clientHeight;
-        });
-        bgCtx.canvas.height = window.innerHeight; // Ozadje je cez cel ekran
+        bgCtx.canvas.width = window.innerWidth;
+        bgCtx.canvas.height = window.innerHeight;
+        pCtx.canvas.width = window.innerWidth;
+        pCtx.canvas.height = pCtx.canvas.parentElement.clientHeight;
+        rCtx.canvas.width = window.innerWidth;
+        rCtx.canvas.height = rCtx.canvas.parentElement.clientHeight;
     }
     window.addEventListener('resize', resize);
     resize();
@@ -132,9 +144,29 @@
     }
 
     function setMode(m) {
-        if (m === 'EXIT') { balance += pnl; pnl = 0; bBody.classList.remove('shake'); }
-        else { entryPrice = currentPrice; }
-        mode = m;
+        if (isGameOver) return;
+        
+        // Če klikneš isto kot že imaš, ne delaj nič
+        if (mode === m) return;
+
+        // Vedno najprej zapremo prejšnjo pozicijo in "unovčimo" profit/izgubo
+        balance += pnl;
+        pnl = 0;
+        bBody.classList.remove('shake');
+
+        if (m === 'EXIT') { 
+            mode = 'EXIT';
+        } else { 
+            entryPrice = currentPrice; 
+            mode = m;
+        }
+
+        // Takojšnje preverjanje Game Over po zaprtju pozicije
+        if (balance <= 0) {
+            balance = 0;
+            isGameOver = true;
+            document.getElementById('game-over').style.display = 'flex';
+        }
     }
 
     function updateRSI(price) {
@@ -157,13 +189,24 @@
     }
 
     function update(price) {
+        if (isGameOver) return;
         if (!currentPrice) currentPrice = price;
+        
         if (mode !== 'EXIT') {
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
             pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
+            
             if (pnl < -50) bBody.classList.add('shake'); else bBody.classList.remove('shake');
+            
+            if ((balance + pnl) <= 0) {
+                balance = 0; pnl = 0;
+                isGameOver = true;
+                document.getElementById('game-over').style.display = 'flex';
+                bBody.classList.remove('shake');
+            }
         }
+        
         currentPrice = price;
         prices.push(price); if (prices.length > 200) prices.shift();
         let rsi = updateRSI(price);
@@ -181,32 +224,24 @@
         const w = bgCtx.canvas.width, h = bgCtx.canvas.height;
         bgCtx.fillStyle = '#010204'; bgCtx.fillRect(0,0,w,h);
         
-        // TRIPPY TUNNEL LOGIKA
-        tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.1); // Hitreje ko si v poziciji
+        tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.1);
         const centerX = w / 2, centerY = h / 2;
-        const numRings = 12;
-        
-        for(let i = 0; i < numRings; i++) {
-            let progress = (i + tunnelPhase) / numRings;
+        for(let i = 0; i < 12; i++) {
+            let progress = (i + tunnelPhase) / 12;
             let loopProgress = progress % 1;
-            // Perspektivno sirjenje: s = exp(progress)
             let size = Math.pow(loopProgress, 3) * Math.max(w, h) * 1.5;
-            let alpha = Math.sin(loopProgress * Math.PI) * 0.2; // Zbledi na zacetku in koncu
-            
+            let alpha = Math.sin(loopProgress * Math.PI) * 0.2;
             bgCtx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
             bgCtx.lineWidth = 2 + loopProgress * 10;
-            bgCtx.beginPath();
-            // Trippy rotacija in oblika
-            let rot = loopProgress * Math.PI * 0.2;
             bgCtx.save();
             bgCtx.translate(centerX, centerY);
-            bgCtx.rotate(rot);
+            bgCtx.rotate(loopProgress * Math.PI * 0.2);
+            bgCtx.beginPath();
             bgCtx.roundRect(-size/2, -size/2, size, size, size * 0.15);
             bgCtx.stroke();
             bgCtx.restore();
         }
 
-        // BTC Chart
         const pw = pCtx.canvas.width, ph = pCtx.canvas.height;
         pCtx.clearRect(0,0,pw,ph);
         if(prices.length > 2) {
@@ -222,10 +257,9 @@
             });
             pCtx.stroke();
             pCtx.font = "45px Arial"; pCtx.textAlign = "right";
-            pCtx.fillText(mode==='EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀"), lx-10, ly);
+            pCtx.fillText(mode==='EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀"), lx - 50, ly + 15);
         }
 
-        // RSI Chart
         const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
         rCtx.clearRect(0,0,rw,rh);
         rCtx.strokeStyle = "rgba(255,255,255,0.1)";
