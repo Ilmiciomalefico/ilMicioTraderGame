@@ -3,24 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Precise Pro v12</title>
+    <title>ilMicioTrader - Open Source Community Edition v15</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
         body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; }
         
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
+        
+        /* Start Screen - Tvoj Intro */
         #start-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; }
+        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 40px rgba(0,255,136,0.15); }
 
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; }
+
         #price-section { flex: 3; position: relative; overflow: hidden; }
-        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.5); border-top: 2px solid rgba(255,255,255,0.1); }
+        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.6); border-top: 2px solid rgba(255,255,255,0.1); }
         #controls { flex: 0 0 auto; background: var(--panel); padding: 15px; border-top: 3px solid #334155; }
 
         .overlay { position: absolute; padding: 15px; z-index: 10; pointer-events: none; width: 100%; display: flex; justify-content: space-between; }
-        #balance-txt { font-size: 1.4rem; font-weight: 900; }
-        #price-txt { font-size: 1.6rem; font-weight: 900; color: var(--neon); }
+        #balance-txt { font-size: 1.5rem; font-weight: 900; }
+        #price-txt { font-size: 1.7rem; font-weight: 900; color: var(--neon); }
 
         .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .box { flex: 1; background: #000; border: 1px solid #334155; padding: 8px; border-radius: 6px; }
@@ -28,14 +31,16 @@
         .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.1rem; outline: none; font-weight: bold; }
 
         .btn-row { display: flex; gap: 10px; height: 60px; }
-        .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1rem; }
+        .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1rem; transition: transform 0.1s; }
         .b-long { background: var(--neon); color: #000; }
         .b-short { background: var(--red); color: #fff; }
         .b-exit { background: #334155; color: #fff; }
+        .t-btn:active { transform: scale(0.98); }
+
+        .lang-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 15px; border-radius: 5px; margin: 5px; cursor: pointer; }
+        .lang-btn.active { border-color: var(--neon); color: var(--neon); }
         
         canvas { display: block; width: 100%; height: 100%; }
-        .shake { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% { transform: translate(2px); } 50% { transform: translate(-2px); } 100% { transform: translate(0); } }
     </style>
 </head>
 <body>
@@ -44,9 +49,15 @@
 
 <div id="start-screen">
     <div class="panel">
-        <h1 style="color: var(--neon); margin-bottom: 20px;">🐈 ilMicioTrader PRO</h1>
-        <p style="color: #94a3b8;">Real-time 1m RSI Smooth & Price Tracking</p>
-        <button class="t-btn b-long" style="width: 100%; padding: 20px;" onclick="startGame()">START TRADING</button>
+        <h1 style="color: var(--neon); margin: 0; font-size: 2.2rem; letter-spacing: -1px;">🐈 ilMicioTrader</h1>
+        <div style="margin: 20px 0;">
+            <button class="lang-btn active" id="btn-en" onclick="setLang('en')">🇬🇧 ENGLISH</button>
+            <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">🇸🇮 SLOVENŠČINA</button>
+        </div>
+        <div id="intro-text" style="text-align: left; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 20px 0; padding-top: 20px; line-height: 1.6;">
+        </div>
+        <button class="t-btn b-long" style="width: 100%; padding: 18px;" onclick="startGame()" id="start-btn">INITIALIZE</button>
+        <p style="font-size: 10px; color: #475569; margin-top: 15px; text-transform: uppercase;">Open Source Community Project</p>
     </div>
 </div>
 
@@ -59,14 +70,14 @@
             </div>
             <div style="text-align: right;">
                 <div id="price-txt">--</div>
-                <div style="font-size: 0.8rem; color: var(--gold);">RSI: <span id="rsi-digit">50</span>%</div>
+                <div style="font-size: 0.8rem; color: var(--gold);">RSI 1M: <span id="rsi-digit">50</span>%</div>
             </div>
         </div>
         <canvas id="priceCanvas"></canvas>
     </div>
 
     <div id="rsi-section">
-        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">1M SMOOTH RSI (1S REFRESH)</div>
+        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">RSI (14M SCALE | 1S LIVE UPDATE)</div>
         <canvas id="rsiCanvas"></canvas>
     </div>
 
@@ -84,21 +95,35 @@
 </div>
 
 <script>
-    const bg = document.getElementById('bg-canvas'), bgCtx = bg.getContext('2d');
-    const pc = document.getElementById('priceCanvas'), pCtx = pc.getContext('2d');
-    const rc = document.getElementById('rsiCanvas'), rCtx = rc.getContext('2d');
+    const bgCtx = document.getElementById('bg-canvas').getContext('2d');
+    const pCtx = document.getElementById('priceCanvas').getContext('2d');
+    const rCtx = document.getElementById('rsiCanvas').getContext('2d');
 
-    let prices = [], rsiHistory = [];
-    let currentPrice = 0, entryPrice = 0, balance = 10000, pnl = 0, mode = 'EXIT';
+    let prices = [], rsiHistory = [], candles = [];
+    let currentCandle = null, currentPrice = 0, entryPrice = 0, balance = 10000, pnl = 0, mode = 'EXIT';
     let tunnelPhase = 0;
-    
-    // RSI EMA Variable
-    let avgGain = 0, avgLoss = 0;
+
+    const texts = {
+        en: { 
+            intro: "<strong>Community Project:</strong> This is a high-precision trading simulator using real Bitget WebSocket data. <br><br> • <strong>RSI 1M:</strong> Calculated on a 14-minute window, updated every second. <br> • <strong>Zero Lag:</strong> High-performance 60fps rendering. <br> • <strong>Open Source:</strong> Made for the community.", 
+            start: "LAUNCH TERMINAL" 
+        },
+        sl: { 
+            intro: "<strong>Skupnostni Projekt:</strong> Visoko-natančen simulator trgovanja z realnimi podatki Bitget borze. <br><br> • <strong>RSI 1M:</strong> Izračunan na 14-minutnem oknu, osvežen vsako sekundo. <br> • <strong>Brez zamika:</strong> Hitro 60fps upodabljanje grafov. <br> • <strong>Open Source:</strong> Narejeno za skupnost.", 
+            start: "ZAGREBI SISTEM" 
+        }
+    };
+
+    function setLang(l) {
+        document.getElementById('btn-en').classList.toggle('active', l==='en');
+        document.getElementById('btn-sl').classList.toggle('active', l==='sl');
+        document.getElementById('intro-text').innerHTML = texts[l].intro;
+        document.getElementById('start-btn').innerText = texts[l].start;
+    }
+    setLang('sl');
 
     function resize() {
-        bg.width = window.innerWidth; bg.height = window.innerHeight;
-        pc.width = pc.clientWidth; pc.height = pc.clientHeight;
-        rc.width = rc.clientWidth; rc.height = rc.clientHeight;
+        [bgCtx.canvas, pCtx.canvas, rCtx.canvas].forEach(c => { c.width = c.clientWidth; c.height = c.clientHeight; });
     }
     window.addEventListener('resize', resize);
     resize();
@@ -115,43 +140,46 @@
         mode = m;
     }
 
-    // SMOOTH RSI 1M (EMA Based)
-    function calculateSmoothRSI(newPrice) {
-        if (prices.length < 2) return 50;
-        let change = newPrice - prices[prices.length - 2];
-        let gain = change > 0 ? change : 0;
-        let loss = change < 0 ? Math.abs(change) : 0;
+    // NATANČNA RSI LOGIKA: 1m skala, osveževanje na 1s
+    function updateRSI(price) {
+        const now = Date.now();
+        const minTs = Math.floor(now / 60000) * 60000;
+        
+        if (!currentCandle || currentCandle.time !== minTs) {
+            if (currentCandle) candles.push({...currentCandle});
+            currentCandle = { time: minTs, open: price, close: price };
+            if (candles.length > 20) candles.shift();
+        }
+        currentCandle.close = price;
 
-        // Alpha za 1 minuto (60 sekund)
-        let alpha = 1 / 60;
-        avgGain = (gain * alpha) + (avgGain * (1 - alpha));
-        avgLoss = (loss * alpha) + (avgLoss * (1 - alpha));
+        if (candles.length < 14) return 50;
 
-        if (avgLoss === 0) return 100;
-        let rs = avgGain / avgLoss;
+        // Vzamemo zadnjih 13 minutnih zapiranj + trenutno aktivno sekundo v minuti
+        let historyCloses = candles.slice(-13).map(c => c.close);
+        let allCloses = historyCloses.concat(currentCandle.close);
+        
+        let gains = 0, losses = 0;
+        for (let i = 1; i < allCloses.length; i++) {
+            let diff = allCloses[i] - allCloses[i-1];
+            if (diff >= 0) gains += diff; else losses += Math.abs(diff);
+        }
+        
+        let rs = (gains / 14) / ((losses / 14) || 0.001);
         return 100 - (100 / (1 + rs));
     }
 
     function update(price) {
-        if (!currentPrice) {
-            currentPrice = price;
-            prices.push(price);
-            return;
-        }
-        
+        if (!currentPrice) currentPrice = price;
         if (mode !== 'EXIT') {
-            let lot = parseFloat(document.getElementById('inp-lot').value) || 0.01;
+            let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
             pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
         }
-
         currentPrice = price;
-        prices.push(price);
-        if (prices.length > 300) prices.shift();
+        prices.push(price); if (prices.length > 250) prices.shift();
         
-        let rsi = calculateSmoothRSI(price);
-        rsiHistory.push(rsi);
-        if (rsiHistory.length > 300) rsiHistory.shift();
+        let rsi = updateRSI(price);
+        rsiHistory.push(rsi); if (rsiHistory.length > 250) rsiHistory.shift();
 
         document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toFixed(2);
         document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
@@ -159,58 +187,51 @@
         const pEl = document.getElementById('pnl-txt');
         pEl.innerText = "P/L: $" + pnl.toFixed(2);
         pEl.style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
-        
-        if (pnl < -200) document.body.classList.add('shake'); else document.body.classList.remove('shake');
     }
 
     function loop() {
-        // Tunel
-        bgCtx.fillStyle = '#010204';
-        bgCtx.fillRect(0,0,bg.width,bg.height);
+        const w = bgCtx.canvas.width, h = bgCtx.canvas.height;
+        bgCtx.fillStyle = '#010204'; bgCtx.fillRect(0,0,w,h);
         tunnelPhase += (mode === 'EXIT' ? 0.01 : 0.06);
-        for(let i=0; i<12; i++) {
-            let s = ((i + tunnelPhase) % 12) * (bg.width/8);
-            bgCtx.strokeStyle = `rgba(0, 255, 136, ${0.12 - s/bg.width})`;
-            bgCtx.beginPath();
-            bgCtx.roundRect(bg.width/2 - s/2, bg.height/2 - s/2, s, s, s*0.2);
-            bgCtx.stroke();
+        for(let i=0; i<15; i++) {
+            let s = ((i + tunnelPhase) % 15) * (w/10);
+            bgCtx.strokeStyle = `rgba(0, 255, 136, ${0.12 - s/w})`;
+            bgCtx.beginPath(); bgCtx.roundRect(w/2 - s/2, h/2 - s/2, s, s, s*0.2); bgCtx.stroke();
         }
 
-        // BTC Chart
-        pCtx.clearRect(0,0,pc.width,pc.height);
+        const pw = pCtx.canvas.width, ph = pCtx.canvas.height;
+        pCtx.clearRect(0,0,pw,ph);
         if(prices.length > 2) {
             const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
-            // Dodan padding 20% zgoraj in spodaj, da emoji ne gre iz ekrana
-            const getY = (v) => pc.height - ((v-min)/range * (pc.height*0.6) + pc.height*0.2);
+            // 30% padding zgoraj/spodaj, da emotikon vedno ostane na ekranu
+            const getY = (v) => ph - ((v-min)/range * (ph*0.4) + ph*0.3);
             
             pCtx.beginPath();
             pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#475569');
             pCtx.lineWidth = 4;
             let lx, ly;
             prices.forEach((p, i) => {
-                lx = i * (pc.width / (prices.length-1)); 
-                ly = getY(p);
+                lx = i * (pw / (prices.length-1)); ly = getY(p);
                 if(i===0) pCtx.moveTo(lx, ly); else pCtx.lineTo(lx, ly);
             });
             pCtx.stroke();
             
-            // Emoji Tracking (Safe bounds)
-            pCtx.font = "40px Arial";
-            pCtx.textAlign = "right";
-            let emoji = mode === 'EXIT' ? "🐈" : (pnl > 0 ? "🤑" : "🙀");
+            // Emoji Rider - Pametno sledenje
+            pCtx.font = "42px Arial"; pCtx.textAlign = "right";
+            let emoji = mode === 'EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀");
             pCtx.fillText(emoji, lx - 10, ly);
         }
 
-        // RSI Chart
-        rCtx.clearRect(0,0,rc.width,rc.height);
+        const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
+        rCtx.clearRect(0,0,rw,rh);
         rCtx.strokeStyle = "rgba(255,255,255,0.1)";
-        rCtx.beginPath(); rCtx.moveTo(0,rc.height*0.3); rCtx.lineTo(rc.width,rc.height*0.3); rCtx.stroke();
-        rCtx.beginPath(); rCtx.moveTo(0,rc.height*0.7); rCtx.lineTo(rc.width,rc.height*0.7); rCtx.stroke();
+        rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke();
+        rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
         if(rsiHistory.length > 1) {
             rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 3;
             rsiHistory.forEach((r, i) => {
-                let x = i * (rc.width / (rsiHistory.length-1));
-                let y = rc.height - (r/100 * rc.height);
+                let x = i * (rw / (rsiHistory.length-1));
+                let y = rh - (r/100 * rh);
                 if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             });
             rCtx.stroke();
@@ -220,7 +241,7 @@
 
     function initWS() {
         const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
-        ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"instType":"SPOT","channel":"ticker","instId":"BTCUSDT"}]}));
+        ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"channel":"ticker","instId":"BTCUSDT","instType":"SPOT"}]}));
         ws.onmessage = (e) => {
             const d = JSON.parse(e.data);
             if(d.data) update(parseFloat(d.data[0].lastPr));
