@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Smooth 1M RSI v31</title>
+    <title>ilMicioTrader - Smart RSI Fallback v32</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -75,7 +75,9 @@
         <canvas id="priceCanvas"></canvas>
     </div>
     <div id="rsi-section">
-        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">MINUTNI RSI (14) | LIVE REFRESH</div>
+        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">
+            1M RSI (14) | <span id="rsi-status">BOOTING</span>
+        </div>
         <canvas id="rsiCanvas"></canvas>
     </div>
     <div id="controls">
@@ -102,8 +104,8 @@
     let tunnelPhase = 0, isGameOver = false;
 
     const texts = {
-        en: { intro: "<p>• 1m Smooth RSI Logic<br>• Real-time WebSocket<br>• Perspective Tunnel<br>• Always-In Trading Mode</p>", start: "START ENGINE" },
-        sl: { intro: "<p>• 1m Gladka RSI Logika<br>• Realni WebSocket podatki<br>• Perspektivni Tunel<br>• Always-In Trading način</p>", start: "ZAGREBI SISTEM" }
+        en: { intro: "<p>• 1m RSI Logic (14 Period)<br>• Smart OHLC Fallback<br>• Trippy Perspective Tunnel<br>• Real Bitget Data</p>", start: "START ENGINE" },
+        sl: { intro: "<p>• 1m RSI Logika (14 period)<br>• Pametni OHLC Fallback<br>• Trippy Perspektivni Tunel<br>• Realni Bitget Podatki</p>", start: "ZAGREBI SISTEM" }
     };
 
     function setLang(l) {
@@ -124,16 +126,22 @@
 
     async function fetchHistory() {
         try {
-            // Pridobimo 100 minutnih svečk za stabilen RSI
+            // Poskusimo dobiti zadnjih 100 minutnih svečk (V2 API)
             const resp = await fetch('https://api.bitget.com/api/v2/spot/market/history-candles?instId=BTCUSDT&granularity=1min&limit=100');
             const res = await resp.json();
-            if (res.data) {
+            if (res.data && res.data.length > 0) {
                 candles = res.data.map(d => ({
                     time: parseInt(d[0]),
                     close: parseFloat(d[4])
                 })).reverse();
+                document.getElementById('rsi-status').innerText = "API LIVE";
+            } else {
+                throw new Error("No data");
             }
-        } catch (e) { console.error("History fail:", e); }
+        } catch (e) { 
+            console.warn("API Fail, entering OHLC Build Mode.");
+            document.getElementById('rsi-status').innerText = "SYNCING OHLC...";
+        }
     }
 
     async function startGame() {
@@ -153,20 +161,30 @@
     }
 
     function getSmoothRSI(latestPrice) {
-        if (candles.length < 14) return 50;
+        // Če še nimava dovolj svečk, uporabiva do sedaj zbrane podatke
+        let history = candles.map(c => c.close);
+        if (history.length === 0 && prices.length > 1) {
+            // Popoln fallback: če API ni vrnil nič, vzamemo zadnjih 14 "psevdo" svečk iz live cen
+            history = prices.filter((_, i) => i % 60 === 0).slice(-14);
+        }
         
-        // Vzamemo zadnjih 14 ZAKLJUČENIH minutnih svečk
-        let history = candles.slice(-14).map(c => c.close);
-        // Dodamo trenutno ceno v živo kot 15. element (tekoča minuta)
         history.push(latestPrice);
+        
+        if (history.length < 2) return 50;
 
         let gains = 0, losses = 0;
-        for (let i = 1; i < history.length; i++) {
+        // Izračunamo razlike (uporabimo zadnjih 14 sprememb)
+        let lookback = Math.min(history.length - 1, 14);
+        for (let i = history.length - lookback; i < history.length; i++) {
             let diff = history[i] - history[i-1];
             if (diff >= 0) gains += diff; else losses += Math.abs(diff);
         }
         
-        let rs = (gains / 14) / ((losses / 14) || 0.001);
+        let avgGain = gains / 14;
+        let avgLoss = losses / 14;
+        
+        if (avgLoss === 0) return 100;
+        let rs = avgGain / avgLoss;
         return 100 - (100 / (1 + rs));
     }
 
@@ -174,7 +192,6 @@
         if (isGameOver) return;
         if (!currentPrice) currentPrice = price;
         
-        // PNL Logika
         if (mode !== 'EXIT') {
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
@@ -190,17 +207,19 @@
         currentPrice = price;
         prices.push(price); if (prices.length > 300) prices.shift();
         
-        // Candle management (1-minutni interval)
+        // Upravljanje svečk (OHLC Build)
         const now = Date.now();
         const minTs = Math.floor(now / 60000) * 60000;
         if (!currentCandle || currentCandle.time !== minTs) {
-            if (currentCandle) candles.push({...currentCandle});
+            if (currentCandle) {
+                candles.push({...currentCandle});
+                if (candles.length > 100) candles.shift();
+                if (candles.length >= 14) document.getElementById('rsi-status').innerText = "LIVE";
+            }
             currentCandle = { time: minTs, close: price };
-            if (candles.length > 200) candles.shift();
         }
         currentCandle.close = price;
 
-        // RSI izračun (minutni podatki, sekundno osveževanje)
         let rsi = getSmoothRSI(price);
         rsiHistory.push(rsi); if (rsiHistory.length > 300) rsiHistory.shift();
 
@@ -248,8 +267,8 @@
         rCtx.clearRect(0,0,rw,rh);
         rCtx.strokeStyle = "rgba(255,180,0,0.15)";
         rCtx.lineWidth = 1;
-        rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke(); // 70 line
-        rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke(); // 30 line
+        rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke();
+        rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
         
         if(rsiHistory.length > 1) {
             rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 3;
