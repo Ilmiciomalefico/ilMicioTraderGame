@@ -3,61 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Trippy Tunnel Edition v17</title>
+    <title>ilMicioTrader - Hardcore v20</title>
     <style>
-        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
+        :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #000; --panel: rgba(10, 15, 25, 0.96); }
         * { box-sizing: border-box; touch-action: manipulation; }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; }
+        body, html { margin: 0; padding: 0; background: #000; color: #fff; font-family: 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; }
         
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
+        /* OZADJE */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
         
-        #start-screen { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0,255,136,0.2); }
+        /* INTRO */
+        #start-screen { position: fixed; inset: 0; background: #000; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 50px rgba(0,255,136,0.2); border: 1px solid var(--neon); }
 
-        #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; }
+        /* GLAVNI KONTEJNER - TUKAJ SE DOGAJA SHAKE */
+        #app-container { position: relative; z-index: 10; display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; background: transparent; pointer-events: none; }
+        #app-container * { pointer-events: auto; }
 
         #price-section { flex: 3; position: relative; overflow: hidden; }
-        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.7); border-top: 2px solid rgba(255,255,255,0.1); }
-        #controls { flex: 0 0 auto; background: var(--panel); padding: 15px; border-top: 3px solid #334155; }
+        #rsi-section { flex: 1.5; position: relative; background: rgba(0,0,0,0.6); border-top: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
+        #controls { flex: 0 0 auto; background: var(--panel); padding: 15px; border-top: 3px solid #334155; position: relative; z-index: 100; }
 
-        .overlay { position: absolute; padding: 15px; z-index: 10; pointer-events: none; width: 100%; display: flex; justify-content: space-between; }
+        .overlay { position: absolute; padding: 15px; z-index: 100; pointer-events: none; width: 100%; display: flex; justify-content: space-between; }
         #balance-txt { font-size: 1.5rem; font-weight: 900; }
-        #price-txt { font-size: 1.8rem; font-weight: 900; color: var(--neon); text-shadow: 0 0 15px var(--neon); }
+        #price-txt { font-size: 1.8rem; font-weight: 900; color: var(--neon); text-shadow: 0 0 10px var(--neon); }
 
-        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .box { flex: 1; background: #000; border: 1px solid #334155; padding: 8px; border-radius: 6px; }
-        .box label { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; }
-        .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.1rem; outline: none; font-weight: bold; }
-
-        .btn-row { display: flex; gap: 10px; height: 65px; }
+        .btn-row { display: flex; gap: 10px; height: 65px; margin-top: 10px; }
         .t-btn { flex: 1; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1.1rem; }
-        .b-long { background: var(--neon); color: #000; box-shadow: 0 4px 0 #00cc6a; }
-        .b-short { background: var(--red); color: #fff; box-shadow: 0 4px 0 #cc2952; }
-        .b-exit { background: #334155; color: #fff; box-shadow: 0 4px 0 #1e293b; }
-        .t-btn:active { transform: translateY(4px); box-shadow: none; }
+        .b-long { background: var(--neon); color: #000; }
+        .b-short { background: var(--red); color: #fff; }
+        .b-exit { background: #334155; color: #fff; }
 
-        .lang-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 15px; border-radius: 5px; margin: 5px; cursor: pointer; }
-        .lang-btn.active { border-color: var(--neon); color: var(--neon); }
-        
-        canvas { display: block; width: 100%; height: 100%; }
-        
-        .shake { animation: shake 0.15s cubic-bezier(.36,.07,.19,.97) infinite; transform: translate3d(0, 0, 0); }
-        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } 40%, 60% { transform: translate3d(6px, 0, 0); } }
+        /* SHAKE ANIMACIJA - DIVJE TRESENJE */
+        .shaking { animation: heavyShake 0.1s infinite; }
+        @keyframes heavyShake {
+            0% { transform: translate(3px, 3px) rotate(0deg); }
+            25% { transform: translate(-3px, -2px) rotate(-1deg); }
+            50% { transform: translate(-4px, 1px) rotate(1deg); }
+            75% { transform: translate(2px, -3px) rotate(-0.5deg); }
+            100% { transform: translate(1px, 2px) rotate(0deg); }
+        }
     </style>
 </head>
-<body id="main-body">
+<body>
 
 <canvas id="bg-canvas"></canvas>
 
 <div id="start-screen">
     <div class="panel">
-        <h1 style="color: var(--neon); margin: 0; font-size: 2.2rem;">🐈 ilMicioTrader</h1>
-        <div style="margin: 20px 0;">
-            <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
-            <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">SI</button>
+        <h1 style="color: var(--neon); margin: 0;">🐈 ilMicioTrader v20</h1>
+        <div id="intro-text" style="text-align: left; font-size: 0.9rem; margin: 20px 0; color: #94a3b8; line-height: 1.5;">
+            • <b>SHAKE MODE:</b> Ekran podivlja ob izgubi!<br>
+            • <b>WARP TUNNEL:</b> Hitrost glede na trade.<br>
+            • <b>REAL DATA:</b> Bitget 1s WebSocket.<br>
+            • <b>1M RSI:</b> Natančna minutna logika.
         </div>
-        <div id="intro-text" style="text-align: left; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid #1e293b; margin: 15px 0; padding-top: 15px;"></div>
-        <button class="t-btn b-long" style="width: 100%;" onclick="startGame()" id="start-btn">START</button>
+        <button class="t-btn b-long" style="width: 100%; padding: 20px;" onclick="startGame()">ZAGREBI SISTEM</button>
     </div>
 </div>
 
@@ -66,80 +67,63 @@
         <div class="overlay">
             <div>
                 <div id="balance-txt">$10,000.00</div>
-                <div id="pnl-txt" style="font-weight: bold;">P/L: $0.00</div>
+                <div id="pnl-txt" style="font-weight: bold; font-size: 1.2rem;">P/L: $0.00</div>
             </div>
             <div style="text-align: right;">
-                <div id="price-txt">--</div>
+                <div id="price-txt">WAIT...</div>
                 <div style="font-size: 0.8rem; color: var(--gold);">RSI 1M: <span id="rsi-digit">50</span>%</div>
             </div>
         </div>
         <canvas id="priceCanvas"></canvas>
     </div>
     <div id="rsi-section">
-        <div style="position:absolute; top:8px; left:15px; font-size:10px; color:var(--gold); font-weight:bold; z-index:5;">1M RSI | 1S LIVE UPDATES</div>
         <canvas id="rsiCanvas"></canvas>
     </div>
     <div id="controls">
-        <div class="input-row">
-            <div class="box"><label>Leverage</label><input type="number" id="inp-lev" value="500"></div>
-            <div class="box"><label>Lot</label><input type="number" id="inp-lot" value="0.10" step="0.01"></div>
+        <div style="display: flex; gap: 10px;">
+            <div style="flex:1"><small>LEV</small><input type="number" id="inp-lev" value="500" style="width:100%; background:#000; color:#fff; border:1px solid #334155; padding:5px;"></div>
+            <div style="flex:1"><small>LOT</small><input type="number" id="inp-lot" value="0.50" step="0.1" style="width:100%; background:#000; color:#fff; border:1px solid #334155; padding:5px;"></div>
         </div>
         <div class="btn-row">
-            <button class="t-btn b-long" onclick="setMode('LONG')">LONG</button>
-            <button class="t-btn b-exit" onclick="setMode('EXIT')">EXIT</button>
-            <button class="t-btn b-short" onclick="setMode('SHORT')">SHORT</button>
+            <button class="t-btn b-long" onclick="doTrade('LONG')">LONG</button>
+            <button class="t-btn b-exit" onclick="doTrade('EXIT')">EXIT</button>
+            <button class="t-btn b-short" onclick="doTrade('SHORT')">SHORT</button>
         </div>
     </div>
 </div>
 
 <script>
-    const bBody = document.getElementById('main-body');
-    const bgCtx = document.getElementById('bg-canvas').getContext('2d');
-    const pCtx = document.getElementById('priceCanvas').getContext('2d');
-    const rCtx = document.getElementById('rsiCanvas').getContext('2d');
+    const container = document.getElementById('app-container');
+    const bg = document.getElementById('bg-canvas'), bgCtx = bg.getContext('2d');
+    const pc = document.getElementById('priceCanvas'), pCtx = pc.getContext('2d');
+    const rc = document.getElementById('rsiCanvas'), rCtx = rc.getContext('2d');
 
     let prices = [], rsiHistory = [], candles = [];
     let currentCandle = null, currentPrice = 0, entryPrice = 0, balance = 10000, pnl = 0, mode = 'EXIT';
     let tunnelPhase = 0;
 
-    const texts = {
-        en: { intro: "<p>• 1m RSI Logic (1s Updates)<br>• Dynamic Micio Rider<br>• Trippy Perspective Tunnel<br>• Real Bitget WebSocket</p>", start: "START ENGINE" },
-        sl: { intro: "<p>• 1m RSI Logika (1s osveževanje)<br>• Dinamični Maček Rider<br>• Trippy Perspektivni Tunel<br>• Realni Bitget Podatki</p>", start: "ZAGREBI SISTEM" }
-    };
-
-    function setLang(l) {
-        document.getElementById('btn-en').classList.toggle('active', l==='en');
-        document.getElementById('btn-sl').classList.toggle('active', l==='sl');
-        document.getElementById('intro-text').innerHTML = texts[l].intro;
-        document.getElementById('start-btn').innerText = texts[l].start;
-    }
-    setLang('sl');
-
     function resize() {
-        [bgCtx, pCtx, rCtx].forEach(ctx => {
-            ctx.canvas.width = window.innerWidth;
-            ctx.canvas.height = ctx.canvas.parentElement.clientHeight;
-        });
-        bgCtx.canvas.height = window.innerHeight; // Ozadje je cez cel ekran
+        bg.width = window.innerWidth; bg.height = window.innerHeight;
+        pc.width = pc.clientWidth; pc.height = pc.clientHeight;
+        rc.width = rc.clientWidth; rc.height = rc.clientHeight;
     }
     window.addEventListener('resize', resize);
     resize();
 
     function startGame() {
         document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('app-container').style.display = 'flex';
+        container.style.display = 'flex';
         resize(); initWS(); requestAnimationFrame(loop);
     }
 
-    function setMode(m) {
-        if (m === 'EXIT') { balance += pnl; pnl = 0; bBody.classList.remove('shake'); }
+    function doTrade(m) {
+        if (m === 'EXIT') { balance += pnl; pnl = 0; container.classList.remove('shaking'); }
         else { entryPrice = currentPrice; }
         mode = m;
     }
 
     function updateRSI(price) {
-        const now = Date.now();
-        const minTs = Math.floor(now / 60000) * 60000;
+        const now = Date.now(), minTs = Math.floor(now / 60000) * 60000;
         if (!currentCandle || currentCandle.time !== minTs) {
             if (currentCandle) candles.push({...currentCandle});
             currentCandle = { time: minTs, open: price, close: price };
@@ -162,7 +146,10 @@
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
             pnl = (mode === 'LONG' ? (price - entryPrice) : (entryPrice - price)) * lot * lev;
-            if (pnl < -50) bBody.classList.add('shake'); else bBody.classList.remove('shake');
+            
+            // SHAKE TRIGGER: Če zgubljaš več kot $10, začni tresti
+            if (pnl < -10) container.classList.add('shaking');
+            else container.classList.remove('shaking');
         }
         currentPrice = price;
         prices.push(price); if (prices.length > 200) prices.shift();
@@ -178,46 +165,33 @@
     }
 
     function loop() {
-        const w = bgCtx.canvas.width, h = bgCtx.canvas.height;
-        bgCtx.fillStyle = '#010204'; bgCtx.fillRect(0,0,w,h);
-        
-        // TRIPPY TUNNEL LOGIKA
-        tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.1); // Hitreje ko si v poziciji
-        const centerX = w / 2, centerY = h / 2;
-        const numRings = 12;
-        
-        for(let i = 0; i < numRings; i++) {
-            let progress = (i + tunnelPhase) / numRings;
-            let loopProgress = progress % 1;
-            // Perspektivno sirjenje: s = exp(progress)
-            let size = Math.pow(loopProgress, 3) * Math.max(w, h) * 1.5;
-            let alpha = Math.sin(loopProgress * Math.PI) * 0.2; // Zbledi na zacetku in koncu
-            
-            bgCtx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
-            bgCtx.lineWidth = 2 + loopProgress * 10;
-            bgCtx.beginPath();
-            // Trippy rotacija in oblika
-            let rot = loopProgress * Math.PI * 0.2;
-            bgCtx.save();
-            bgCtx.translate(centerX, centerY);
-            bgCtx.rotate(rot);
-            bgCtx.roundRect(-size/2, -size/2, size, size, size * 0.15);
-            bgCtx.stroke();
-            bgCtx.restore();
+        // 1. TUNNEL DRAW
+        const w = bg.width, h = bg.height;
+        bgCtx.fillStyle = '#000'; bgCtx.fillRect(0,0,w,h);
+        tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.12);
+        bgCtx.save();
+        bgCtx.translate(w/2, h/2);
+        for(let i=0; i<15; i++) {
+            let p = ((i + tunnelPhase) % 15) / 15;
+            let size = Math.pow(p, 4) * Math.max(w, h) * 2;
+            bgCtx.strokeStyle = `rgba(0, 255, 136, ${Math.sin(p * Math.PI) * 0.4})`;
+            bgCtx.lineWidth = 1 + p * 12;
+            bgCtx.rotate(p * 0.01);
+            bgCtx.strokeRect(-size/2, -size/2, size, size);
         }
+        bgCtx.restore();
 
-        // BTC Chart
-        const pw = pCtx.canvas.width, ph = pCtx.canvas.height;
-        pCtx.clearRect(0,0,pw,ph);
+        // 2. PRICE CHART
+        pCtx.clearRect(0,0,pc.width,pc.height);
         if(prices.length > 2) {
             const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
-            const getY = (v) => ph - ((v-min)/range * (ph*0.5) + ph*0.25);
+            const getY = (v) => pc.height - ((v-min)/range * (pc.height*0.6) + pc.height*0.2);
             pCtx.beginPath();
-            pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#475569');
+            pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#555');
             pCtx.lineWidth = 5;
             let lx, ly;
             prices.forEach((p, i) => {
-                lx = i * (pw / (prices.length-1)); ly = getY(p);
+                lx = i * (pc.width / (prices.length-1)); ly = getY(p);
                 if(i===0) pCtx.moveTo(lx, ly); else pCtx.lineTo(lx, ly);
             });
             pCtx.stroke();
@@ -225,17 +199,15 @@
             pCtx.fillText(mode==='EXIT' ? "🐈" : (pnl>0 ? "🤑" : "🙀"), lx-10, ly);
         }
 
-        // RSI Chart
-        const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
-        rCtx.clearRect(0,0,rw,rh);
-        rCtx.strokeStyle = "rgba(255,255,255,0.1)";
-        rCtx.beginPath(); rCtx.moveTo(0, rh*0.3); rCtx.lineTo(rw, rh*0.3); rCtx.stroke();
-        rCtx.beginPath(); rCtx.moveTo(0, rh*0.7); rCtx.lineTo(rw, rh*0.7); rCtx.stroke();
+        // 3. RSI CHART
+        rCtx.clearRect(0,0,rc.width,rc.height);
+        rCtx.strokeStyle = "rgba(255,191,36,0.2)";
+        rCtx.strokeRect(0, rc.height*0.3, rc.width, rc.height*0.4);
         if(rsiHistory.length > 1) {
-            rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 4;
+            rCtx.beginPath(); rCtx.strokeStyle = '#fbbf24'; rCtx.lineWidth = 3;
             rsiHistory.forEach((r, i) => {
-                let x = i * (rw / (rsiHistory.length-1));
-                let y = rh - (r/100 * rh);
+                let x = i * (rc.width / (rsiHistory.length-1));
+                let y = rc.height - (r/100 * rc.height);
                 if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             });
             rCtx.stroke();
@@ -248,7 +220,7 @@
         ws.onopen = () => ws.send(JSON.stringify({"op":"subscribe","args":[{"channel":"ticker","instId":"BTCUSDT","instType":"SPOT"}]}));
         ws.onmessage = (e) => {
             const d = JSON.parse(e.data);
-            if(d.data) update(parseFloat(d.data[0].lastPr));
+            if(d.data && d.data[0]) update(parseFloat(d.data[0].lastPr));
         };
         ws.onclose = () => setTimeout(initWS, 1000);
     }
