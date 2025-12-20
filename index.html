@@ -3,48 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ilMicioTrader - Community Edition v34</title>
+    <title>ilMicioTrader - RSI Countdown v38</title>
     <style>
         :root { --neon: #00ff88; --red: #ff3366; --gold: #fbbf24; --bg: #010204; --panel: rgba(10, 15, 25, 0.98); }
         * { box-sizing: border-box; touch-action: manipulation; }
-        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; height: 100%; width: 100%; }
-        
+        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; overflow: hidden; height: 100%; width: 100%; }
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; width: 100vw; height: 100vh; }
-        
         #start-screen, #game-over { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
         #game-over { display: none; z-index: 200; background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); }
-        
-        .panel { background: var(--panel); border: 2px solid #1e293b; padding: 30px; border-radius: 20px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 0 60px rgba(0,255,136,0.15); border: 1px solid rgba(0,255,136,0.3); }
-
+        .panel { background: var(--panel); border: 1px solid rgba(0,255,136,0.3); padding: 30px; border-radius: 20px; max-width: 450px; width: 100%; text-align: center; box-shadow: 0 0 60px rgba(0,255,136,0.15); }
         #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; display: none; }
-
         #price-section { flex: 3; position: relative; overflow: hidden; }
         #rsi-section { flex: 1.2; position: relative; background: rgba(0,0,0,0.8); border-top: 1px solid rgba(255,255,255,0.05); }
         #controls { flex: 0 0 auto; background: var(--panel); padding: 20px; border-top: 2px solid #1e293b; }
-
         .overlay { position: absolute; padding: 20px; z-index: 10; pointer-events: none; width: 100%; display: flex; justify-content: space-between; }
-        #balance-txt { font-size: 1.6rem; font-weight: 800; letter-spacing: -1px; }
+        #balance-txt { font-size: 1.6rem; font-weight: 800; }
         #price-txt { font-size: 2rem; font-weight: 900; color: var(--neon); text-shadow: 0 0 20px rgba(0,255,136,0.5); }
-
         .input-row { display: flex; gap: 12px; margin-bottom: 15px; }
         .box { flex: 1; background: rgba(0,0,0,0.5); border: 1px solid #334155; padding: 10px; border-radius: 8px; }
         .box label { font-size: 11px; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px; }
         .box input { background: transparent; border: none; color: white; width: 100%; font-size: 1.2rem; outline: none; font-weight: 800; font-family: 'Consolas', monospace; }
-
         .btn-row { display: flex; gap: 12px; height: 70px; }
         .t-btn { flex: 1; border: none; border-radius: 12px; font-weight: 900; cursor: pointer; text-transform: uppercase; font-size: 1.2rem; transition: all 0.1s; }
         .b-long { background: var(--neon); color: #000; box-shadow: 0 5px 0 #00cc6a; }
         .b-short { background: var(--red); color: #fff; box-shadow: 0 5px 0 #cc2952; }
         .b-exit { background: #334155; color: #fff; box-shadow: 0 5px 0 #1e293b; }
         .t-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #1e293b; }
-
-        .lang-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 16px; border-radius: 6px; margin: 5px; cursor: pointer; font-weight: 600; }
+        .lang-btn { background: #1e293b; border: 1px solid #334155; color: white; padding: 8px 16px; border-radius: 6px; margin: 5px; cursor: pointer; }
         .lang-btn.active { border-color: var(--neon); color: var(--neon); background: rgba(0,255,136,0.05); }
-        
         canvas { display: block; width: 100%; height: 100%; }
-        
-        .shake { animation: shake 0.2s cubic-bezier(.36,.07,.19,.97) infinite; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-3px, 0, 0); } 40%, 60% { transform: translate3d(3px, 0, 0); } }
+        .shake { animation: shake 0.2s infinite; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 40%, 60% { transform: translate3d(3px, 0, 0); } }
     </style>
 </head>
 <body>
@@ -53,13 +42,13 @@
 
 <div id="start-screen">
     <div class="panel">
-        <h1 style="color: var(--neon); margin: 0; font-size: 2.5rem; letter-spacing: -1px;">🐈 ilMicioTrader</h1>
-        <p style="color: #64748b; font-size: 0.8rem; margin-top: 5px;">COMMUNITY EDITION v34</p>
+        <h1 style="color: var(--neon); margin: 0; font-size: 2.5rem;">🐈 ilMicioTrader</h1>
+        <p style="color: #64748b; font-size: 0.8rem;">COMMUNITY EDITION v38</p>
         <div style="margin: 20px 0;">
             <button class="lang-btn active" id="btn-en" onclick="setLang('en')">ENGLISH</button>
             <button class="lang-btn" id="btn-sl" onclick="setLang('sl')">SLOVENŠČINA</button>
         </div>
-        <div id="intro-text" style="text-align: left; font-size: 0.95rem; color: #cbd5e1; border-top: 1px solid #1e293b; margin: 15px 0; padding-top: 20px; line-height: 1.6;"></div>
+        <div id="intro-text" style="text-align: left; font-size: 0.95rem; color: #cbd5e1; border-top: 1px solid #1e293b; margin: 15px 0; padding-top: 20px;"></div>
         <button class="t-btn b-long" style="width: 100%; height: 60px;" onclick="startGame()" id="start-btn">ZAGREBI SISTEM</button>
     </div>
 </div>
@@ -67,7 +56,6 @@
 <div id="game-over">
     <div class="panel" style="border-color: var(--red);">
         <h1 style="color: var(--red); font-size: 3.5rem; margin: 0;">REKT</h1>
-        <p style="font-size: 1.1rem; margin: 15px 0;">Tvoj balans je na nuli. Maček gre na ulico.</p>
         <button class="t-btn b-short" style="width: 100%; height: 60px;" onclick="location.reload()">POSKUSI ZNOVA</button>
     </div>
 </div>
@@ -116,8 +104,8 @@
     let tunnelPhase = 0, isGameOver = false, micioJump = 0;
 
     const texts = {
-        en: { intro: "• 1-Minute Smooth RSI Logic<br>• Real-time Bitget Market Data<br>• Dynamic Rider Tracking<br>• High-Leverage Simulator", start: "START ENGINE" },
-        sl: { intro: "• 1-minutna gladka RSI logika<br>• Bitget tržni podatki v živo<br>• Dinamično sledenje jezdeca<br>• Simulator visokega vzvoda", start: "ZAGREBI SISTEM" }
+        en: { intro: "• 1-Minute RSI Logic<br>• Professional 0-100% Levels<br>• Bitget Real-time Data", start: "START ENGINE" },
+        sl: { intro: "• 1-minutna RSI logika<br>• Profesionalne 0-100% ravni<br>• Bitget podatki v živo", start: "ZAGREBI SISTEM" }
     };
 
     function setLang(l) {
@@ -142,9 +130,20 @@
             const res = await resp.json();
             if (res.data) {
                 candles = res.data.map(d => ({ time: parseInt(d[0]), close: parseFloat(d[4]) })).reverse();
-                document.getElementById('rsi-status').innerText = "POVEZANO";
+                updateRSIStatus();
             }
-        } catch (e) { document.getElementById('rsi-status').innerText = "GRADIM OHLC..."; }
+        } catch (e) { updateRSIStatus(); }
+    }
+
+    function updateRSIStatus() {
+        const s = document.getElementById('rsi-status');
+        if (candles.length >= 14) {
+            s.innerText = "POVEZANO";
+            s.style.color = "var(--neon)";
+        } else {
+            s.innerText = `PRIPRAVA (${candles.length}/14)`;
+            s.style.color = "var(--gold)";
+        }
     }
 
     async function startGame() {
@@ -168,8 +167,7 @@
         history.push(latestPrice);
         if (history.length < 14) return 50;
         let gains = 0, losses = 0;
-        let lookback = 14; 
-        for (let i = history.length - lookback; i < history.length; i++) {
+        for (let i = history.length - 14; i < history.length; i++) {
             let diff = history[i] - history[i-1];
             if (diff >= 0) gains += diff; else losses += Math.abs(diff);
         }
@@ -179,8 +177,7 @@
 
     function update(price) {
         if (isGameOver) return;
-        micioJump = 10; // Animiraj skok ob novem podatku
-        
+        micioJump = 10;
         if (mode !== 'EXIT') {
             let lot = parseFloat(document.getElementById('inp-lot').value) || 0.1;
             let lev = parseFloat(document.getElementById('inp-lev').value) || 1;
@@ -188,55 +185,45 @@
             if (pnl < -100) bBody.classList.add('shake'); else bBody.classList.remove('shake');
             if ((balance + pnl) <= 0) { balance = 0; isGameOver = true; document.getElementById('game-over').style.display = 'flex'; }
         }
-        
         currentPrice = price;
         prices.push(price); if (prices.length > 250) prices.shift();
-        
         const now = Date.now(), minTs = Math.floor(now / 60000) * 60000;
         if (!currentCandle || currentCandle.time !== minTs) {
             if (currentCandle) candles.push({...currentCandle});
             if (candles.length > 50) candles.shift();
             currentCandle = { time: minTs, close: price };
+            updateRSIStatus();
         }
         currentCandle.close = price;
-
         let rsi = getSmoothRSI(price);
         rsiHistory.push(rsi); if (rsiHistory.length > 250) rsiHistory.shift();
-
         document.getElementById('balance-txt').innerText = "$" + (balance + pnl).toLocaleString(undefined, {minimumFractionDigits: 2});
         document.getElementById('price-txt').innerText = currentPrice.toFixed(2);
         document.getElementById('rsi-digit').innerText = Math.round(rsi);
         const pEl = document.getElementById('pnl-txt');
-        pEl.innerText = "P/L: $" + pnl.toFixed(2);
-        pEl.style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
+        pEl.innerText = "P/L: $" + pnl.toFixed(2); pEl.style.color = pnl >= 0 ? "var(--neon)" : "var(--red)";
     }
 
     function loop() {
         const w = bgCtx.canvas.width, h = bgCtx.canvas.height;
         bgCtx.fillStyle = '#010204'; bgCtx.fillRect(0,0,w,h);
-        
         tunnelPhase += (mode === 'EXIT' ? 0.02 : 0.12);
-        const centerX = w / 2, centerY = h / 2;
         for(let i = 0; i < 12; i++) {
             let lp = (i + tunnelPhase) / 12 % 1;
             let size = Math.pow(lp, 3) * Math.max(w, h) * 1.5;
             bgCtx.strokeStyle = `rgba(0, 255, 136, ${Math.sin(lp * Math.PI) * 0.15})`;
             bgCtx.lineWidth = 1 + lp * 8;
-            bgCtx.save(); bgCtx.translate(centerX, centerY); bgCtx.rotate(lp * 0.5);
+            bgCtx.save(); bgCtx.translate(w/2, h/2); bgCtx.rotate(lp * 0.5);
             bgCtx.strokeRect(-size/2, -size/2, size, size); bgCtx.restore();
         }
-
         const pw = pCtx.canvas.width, ph = pCtx.canvas.height;
         pCtx.clearRect(0,0,pw,ph);
         if(prices.length > 2) {
             const min = Math.min(...prices), max = Math.max(...prices), range = (max-min)||1;
             const getY = (v) => ph - ((v-min)/range * (ph*0.5) + ph*0.25);
             const riderX = pw * 0.75;
-            
-            pCtx.beginPath();
-            pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#94a3b8');
-            pCtx.lineWidth = 5; pCtx.lineJoin = 'round';
-            let lastX, lastY;
+            pCtx.beginPath(); pCtx.strokeStyle = mode==='LONG' ? '#00ff88' : (mode==='SHORT' ? '#ff3366' : '#94a3b8');
+            pCtx.lineWidth = 5; let lastX, lastY;
             prices.forEach((p, i) => {
                 let x = riderX - (prices.length - 1 - i) * (pw / 180);
                 let y = getY(p);
@@ -244,51 +231,30 @@
                 if(i === prices.length - 1) { lastX = x; lastY = y; }
             });
             pCtx.stroke();
-
             if(micioJump > 0) micioJump -= 0.5;
             pCtx.font = "48px Arial"; pCtx.textAlign = "center";
             pCtx.fillText(mode==='EXIT'?"🐈":(pnl>=0?"🤑":"🙀"), lastX, lastY - 15 - micioJump);
         }
-
         const rw = rCtx.canvas.width, rh = rCtx.canvas.height;
         rCtx.clearRect(0,0,rw,rh);
-        
-        // RSI Oznake in Linije
-        const levels = [
-            {v: 100, label: "100"},
-            {v: 70, label: "70%"},
-            {v: 50, label: "50%"},
-            {v: 30, label: "30%"},
-            {v: 0, label: "0"}
-        ];
-
+        const levels = [{v:100, l:"100"}, {v:70, l:"70%"}, {v:50, l:"50%"}, {v:30, l:"30%"}, {v:0, l:"0"}];
         levels.forEach(lvl => {
-            let y = rh - (lvl.v / 100 * rh);
-            // Izriši linijo
+            let y = rh - (lvl.v/100 * rh);
             rCtx.strokeStyle = "rgba(255,255,255,0.1)";
             rCtx.lineWidth = lvl.v === 50 ? 2 : 1;
-            if(lvl.v === 70 || lvl.v === 30 || lvl.v === 50) rCtx.setLineDash([5, 5]); else rCtx.setLineDash([]);
-            rCtx.beginPath(); rCtx.moveTo(0, y); rCtx.lineTo(rw - 40, y); rCtx.stroke();
-            
-            // Izriši tekst
-            rCtx.fillStyle = "#64748b";
-            rCtx.font = "bold 10px Arial";
-            rCtx.textAlign = "right";
-            rCtx.fillText(lvl.label, rw - 5, y + 4);
+            if([70,50,30].includes(lvl.v)) rCtx.setLineDash([5, 5]); else rCtx.setLineDash([]);
+            rCtx.beginPath(); rCtx.moveTo(0, y); rCtx.lineTo(rw-40, y); rCtx.stroke();
+            rCtx.fillStyle = "#64748b"; rCtx.font = "bold 10px Arial"; rCtx.textAlign = "right";
+            rCtx.fillText(lvl.l, rw-5, y+4);
         });
-        rCtx.setLineDash([]); // Reset dash za graf
-
-        // RSI Gradacija (Senčenje)
-        rCtx.fillStyle = "rgba(255,51,102,0.05)"; rCtx.fillRect(0, 0, rw, rh*0.3); // Overbought
-        rCtx.fillStyle = "rgba(0,255,136,0.05)"; rCtx.fillRect(0, rh*0.7, rw, rh*0.3); // Oversold
-
-        if(rsiHistory.length > 1) {
+        rCtx.setLineDash([]);
+        if(rsiHistory.length > 1 && candles.length >= 14) {
             rCtx.beginPath();
             let lastRsi = rsiHistory[rsiHistory.length-1];
-            rCtx.strokeStyle = lastRsi > 70 ? varProp('--red') : (lastRsi < 30 ? varProp('--neon') : '#fbbf24');
+            rCtx.strokeStyle = lastRsi > 70 ? '#ff3366' : (lastRsi < 30 ? '#00ff88' : '#fbbf24');
             rCtx.lineWidth = 3;
             rsiHistory.forEach((r, i) => {
-                let x = i * ((rw - 40) / (rsiHistory.length-1));
+                let x = i * ((rw-40)/(rsiHistory.length-1));
                 let y = rh - (r/100 * rh);
                 if(i===0) rCtx.moveTo(x, y); else rCtx.lineTo(x, y);
             });
@@ -296,8 +262,6 @@
         }
         requestAnimationFrame(loop);
     }
-
-    function varProp(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
 
     function initWS() {
         const ws = new WebSocket('wss://ws.bitget.com/v2/ws/public');
